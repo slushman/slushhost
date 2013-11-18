@@ -132,7 +132,7 @@ sudo sed -i 's/;emergency_restart_interval = 0/emergency_restart_interval = 2/g'
 echo "events.mechanism = epoll" >> /etc/php-fpm.conf
 echo "[apc]" >> /etc/php.ini
 echo "apc.stat = 0" >> /etc/php.ini
-echo "apc.max_file_size = M" >> /etc/php.ini
+echo "apc.max_file_size = 2M" >> /etc/php.ini
 echo "apc.localcache = 1" >> /etc/php.ini
 echo "apc.localcache.size = 256" >> /etc/php.ini
 echo "apc.shm_segments = 1" >> /etc/php.ini
