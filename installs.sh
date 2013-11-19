@@ -36,13 +36,13 @@ sudo /usr/bin/mysql_secure_installation
 ;;
 
 3)
-echo -e "Please enter your root database password: "
+echo -e "Please enter the MySQL password: "
 read dbpassword
 
-echo -e "Please enter your username: "
+echo -e "Please enter your database username: "
 read dbusername
 
-echo -e "Please enter your user password: "
+echo -e "Please enter your database password: "
 read dbuserpassword
 
 mysql -uroot -p$dbpassword -e "CREATE USER $dbusername IDENTIFIED BY '$dbuserpassword'";
