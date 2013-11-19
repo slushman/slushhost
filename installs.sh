@@ -1,6 +1,8 @@
 #!/bin/bash
 scriptloop="y"
 while [ "$scriptloop" = "y" ]; do
+echo -e  ""
+echo -e  ""
 echo -e  "Slushhost Setup:"
 echo -e  ""
 echo -e  "1 - Download Repos"
@@ -13,9 +15,8 @@ echo -e  "7 - Config iptables"
 echo -e  "8 - Install and Config Fail2Ban"
 echo -e  "9 - Download WordPress"
 echo -e  "10 - memcache"
-echo -e  "11 - Config Server"
+echo -e  "11 - Config and Harden Server"
 echo -e  "12 - Start server"
-echo -e  "13 - Harden Server"
 echo -e  ""
 echo -e  "q - EXIT MYSQL SCRIPT!"
 echo -e  ""
@@ -46,7 +47,7 @@ read dbusername
 echo -e "Please enter your user password: "
 read dbuserpassword
 
-mysql -uroot -p$dbpassword -e "CREATE USER $dbusername IDENTIFIED BY \'$dbuserpassword\'";
+mysql -uroot -p$dbpassword -e "CREATE USER $dbusername IDENTIFIED BY '$dbuserpassword'";
 exit
 ;;
 
@@ -65,6 +66,7 @@ unzip v1.7.30.1-beta.zip
 cd ngx_pagespeed-1.7.30.1-beta/
 wget https://dl.google.com/dl/page-speed/psol/1.7.30.1.tar.gz
 tar -xzvf 1.7.30.1.tar.gz
+cd
 wget http://nginx.org/download/nginx-1.5.6.tar.gz
 tar -xvzf nginx-1.5.6.tar.gz
 cd ~/nginx-1.5.6
@@ -96,7 +98,7 @@ scripts/pagespeed_libraries_generator.sh > ~/pagespeed_libraries.conf
 sudo mv ~/slushhost/nginx.sh /etc/init.d/nginx
 sudo chmod +x /etc/init.d/nginx
 sudo chkconfig nginx on
-sudo mkdir /var/tmp/nginx
+sudo useradd -r nginx
 ;;
 
 6)
@@ -128,7 +130,7 @@ sudo service iptables restart
 8)
 sudo yum install fail2ban
 sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
-sudo sed -i 's/[name=SSH, port=ssh, protocol=tcp]/[name=SSH, port=25000, protocol=tcp]/g' /etc/fail2ban/jail.local 
+sudo sed -i 's/port=ssh/port=25000/g' /etc/fail2ban/jail.local 
 sudo service fail2ban start
 ;;
 
@@ -141,7 +143,7 @@ source ~/.bash_profile
 ;;
 
 10)
-sudo yum --enablerepo=remi,remi-php55 install php-pecl-memcached.x86_64
+sudo yum --enablerepo=remi,remi-php55 install memcached php-pecl-memcached.x86_64
 sudo sed -i 's/OPTIONS=""/OPTIONS="-l 127.0.0.1"/g' /etc/sysconfig/memcached
 ;;
 
@@ -155,49 +157,15 @@ sudo cp /etc/php.ini /etc/old.php.ini
 sudo cp /etc/php-fpm.d/www.conf  /etc/php-fpm.d/old.www.conf
 sudo mkdir /etc/nginx/configs/.htpasswd/
 sudo htpasswd -c /etc/nginx/configs/.htpasswd/passwd slushman
-sudo mv /slushhost/nginx/sites/* /etc/nginx/sites/*
-sudo mv /slushhost/nginx/configs/* /etc/nginx/configs/*
-sudo mv /slushhost/nginx/nginx.conf /etc/nginx
-sudo mv /slushhost/nginx/mime.types /etc/nginx
+sudo mv slushhost/nginx/sites/* /etc/nginx/sites/*
+sudo mv slushhost/nginx/configs/* /etc/nginx/configs/*
+sudo mv slushhost/nginx/nginx.conf /etc/nginx
+sudo mv slushhost/nginx/mime.types /etc/nginx
 sudo mv ~/pagespeed_libraries.conf /etc/nginx/configs/
-sudo sed -i 's/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=0/g' /etc/php.ini
-sudo sed -i 's/upload_max_filesize = 2M/upload_max_filesize = 15M/g' /etc/php.ini
-sudo sed -i 's/allow_url_fopen = On/allow_url_fopen = Off/g' /etc/php.ini
-sudo sed -i 's/post_max_size = 8M/post_max_size = 15M/g' /etc/php.ini
-sudo sed -i 's/;default_charset = "UTF-8"/default_charset = "UTF-8"/g' /etc/php.ini
-sudo sed -i 's/default_socket_timeout = 60/default_socket_timeout = 30/g' /etc/php.ini
-sudo sed -i 's/mysql.allow_persistent = On/mysql.allow_persistent = Off/g' /etc/php.ini
-sudo sed -i 's/expose_php = On/expose_php = Off/g' /etc/php.ini
-sudo sed -i 's/user = apache/user = nginx/g' /etc/php-fpm.d/www.conf
-sudo sed -i 's/group = apache/group = nginx/g' /etc/php-fpm.d/www.conf
-sudo sed -i 's/;emergency_restart_threshold = 0/emergency_restart_threshold = 5/g' /etc/php-fpm.conf
-sudo sed -i 's/;emergency_restart_interval = 0/emergency_restart_interval = 2/g' /etc/php-fpm.conf
-echo "events.mechanism = epoll" >> /etc/php-fpm.conf
-echo "[apc]" >> /etc/php.ini
-echo "apc.stat = 0" >> /etc/php.ini
-echo "apc.max_file_size = 2M" >> /etc/php.ini
-echo "apc.localcache = 1" >> /etc/php.ini
-echo "apc.localcache.size = 256" >> /etc/php.ini
-echo "apc.shm_segments = 1" >> /etc/php.ini
-echo "apc.ttl = 3600" >> /etc/php.ini
-echo "apc.user_ttl = 7200" >> /etc/php.ini
-echo "apc.gc_ttl = 3600" >> /etc/php.ini
-echo "apc.cache_by_default = 1" >> /etc/php.ini
-echo "apc.filters = " >> /etc/php.ini
-echo "apc.write_lock = 1" >> /etc/php.ini
-echo "apc.num_files_hint= 512" >> /etc/php.ini
-echo "apc.user_entries_hint=4096" >> /etc/php.ini
-echo "apc.shm_size = 256M" >> /etc/php.ini
-echo "apc.mmap_file_mask=/tmp/apc.XXXXXX" >> /etc/php.ini
-echo "apc.include_once_override = 0" >> /etc/php.ini
-echo "apc.file_update_protection=2" >> /etc/php.ini
-echo "apc.canonicalize = 1" >> /etc/php.ini
-echo "apc.report_autofilter=0" >> /etc/php.ini
-echo "apc.stat_ctime=0" >> /etc/php.ini
-echo ";This should be used when you are finished with PHP file changes." >> /etc/php.ini
-echo ";As you must clear the APC cache to recompile already cached files." >> /etc/php.ini
-echo ";If you are still developing, set this to 1." >> /etc/php.ini
-echo "apc.stat=0" >> /etc/php.ini
+sudo mv -f slushhost/www.conf /etc/php-fpm.d/www.conf
+sudo mv -f slushhost/php-fpm.conf /etc/php-fpm.conf
+sudo mv -f slushhost/php.ini /etc/php.ini
+sudo mv -f slushhost/sysctl.conf /etc/sysctl.conf
 ;;
 
 12)
@@ -210,64 +178,6 @@ sudo chkconfig --levels 235 nginx on
 sudo chkconfig --levels 235 php-fpm on
 sudo chkconfig --levels 235 memcached on
 sudo chkconfig --levels 235 fail2ban
-;;
-
-13)
-echo "# Avoid a smurf attack" >> /etc/sysctl.conf
-echo "net.ipv4.icmp_echo_ignore_broadcasts = 1" >> /etc/sysctl.conf
-echo "" >> /etc/sysctl.conf
-echo "# Turn on protection for bad icmp error messages" >> /etc/sysctl.conf
-echo "net.ipv4.icmp_ignore_bogus_error_responses = 1" >> /etc/sysctl.conf
-echo "" >> /etc/sysctl.conf
-echo "# Turn on and log spoofed, source routed, and redirect packets" >> /etc/sysctl.conf
-echo "net.ipv4.conf.all.log_martians = 1" >> /etc/sysctl.conf
-echo "net.ipv4.conf.default.log_martians = 1" >> /etc/sysctl.conf
-echo "" >> /etc/sysctl.conf
-echo "# No source routed packets here" >> /etc/sysctl.conf
-echo "net.ipv4.conf.all.accept_source_route = 0" >> /etc/sysctl.conf
-echo "" >> /etc/sysctl.conf
-echo "# Turn on reverse path filtering" >> /etc/sysctl.conf
-echo "net.ipv4.conf.all.rp_filter = 1" >> /etc/sysctl.conf
-echo "" >> /etc/sysctl.conf
-echo "# Make sure no one can alter the routing tables" >> /etc/sysctl.conf
-echo "net.ipv4.conf.all.accept_redirects = 0" >> /etc/sysctl.conf
-echo "net.ipv4.conf.default.accept_redirects = 0" >> /etc/sysctl.conf
-echo "net.ipv4.conf.all.secure_redirects = 0" >> /etc/sysctl.conf
-echo "net.ipv4.conf.default.secure_redirects = 0" >> /etc/sysctl.conf
-echo "" >> /etc/sysctl.conf
-echo "# Don't act as a router" >> /etc/sysctl.conf
-echo "net.ipv4.conf.all.send_redirects = 0" >> /etc/sysctl.conf
-echo "net.ipv4.conf.default.send_redirects = 0" >> /etc/sysctl.conf
-echo "" >> /etc/sysctl.conf
-echo "# Turn on execshild" >> /etc/sysctl.conf
-echo "kernel.exec-shield = 1" >> /etc/sysctl.conf
-echo "kernel.randomize_va_space = 1" >> /etc/sysctl.conf
-echo "" >> /etc/sysctl.conf
-echo "# Tune IPv6" >> /etc/sysctl.conf
-echo "net.ipv6.conf.default.router_solicitations = 0" >> /etc/sysctl.conf
-echo "net.ipv6.conf.default.accept_ra_rtr_pref = 0" >> /etc/sysctl.conf
-echo "net.ipv6.conf.default.accept_ra_pinfo = 0" >> /etc/sysctl.conf
-echo "net.ipv6.conf.default.accept_ra_defrtr = 0" >> /etc/sysctl.conf
-echo "net.ipv6.conf.default.autoconf = 0" >> /etc/sysctl.conf
-echo "net.ipv6.conf.default.dad_transmits = 0" >> /etc/sysctl.conf
-echo "net.ipv6.conf.default.max_addresses = 1" >> /etc/sysctl.conf
-echo "" >> /etc/sysctl.conf
-echo "# Optimization for port usefor LBs" >> /etc/sysctl.conf
-echo "# Increase system file descriptor limit" >> /etc/sysctl.conf
-echo "fs.file-max = 65535" >> /etc/sysctl.conf
-echo "" >> /etc/sysctl.conf
-echo "# Allow for more PIDs (to reduce rollover problems); may break some programs 32768" >> /etc/sysctl.conf
-echo "kernel.pid_max = 65536" >> /etc/sysctl.conf
-echo "" >> /etc/sysctl.conf
-echo "# Increase system IP port limits" >> /etc/sysctl.conf
-echo "net.ipv4.ip_local_port_range = 2000 65000" >> /etc/sysctl.conf
-echo "" >> /etc/sysctl.conf
-echo "# Increase Linux auto tuning TCP buffer limits" >> /etc/sysctl.conf
-echo "# min, default, and max number of bytes to use" >> /etc/sysctl.conf
-echo "# set max to at least 4MB, or higher if you use very high BDP paths" >> /etc/sysctl.conf
-echo "# Tcp Windows etc" >> /etc/sysctl.conf
-echo "net.core.netdev_max_backlog = 5000" >> /etc/sysctl.conf
-echo "net.ipv4.tcp_window_scaling = 1" >> /etc/sysctl.conf
 ;;
 
 q)
