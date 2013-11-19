@@ -10,13 +10,11 @@ echo -e  "2 - Install MariaDB"
 echo -e  "3 - Finish MariaDB"
 echo -e  "4 - Install PHP & PHP-FPM"
 echo -e  "5 - Install nginx & PageSpeed"
-echo -e  "6 - Setup Directories"
-echo -e  "7 - Config iptables"
-echo -e  "8 - Install and Config Fail2Ban"
-echo -e  "9 - Download WordPress"
-echo -e  "10 - memcache"
-echo -e  "11 - Config and Harden Server"
-echo -e  "12 - Start server"
+echo -e  "6 - Config iptables"
+echo -e  "7 - Install and Config Fail2Ban"
+echo -e  "8 - Download WordPress"
+echo -e  "9 - memcache"
+echo -e  "10 - Config, Harden, and Start Server"
 echo -e  ""
 echo -e  "q - EXIT MYSQL SCRIPT!"
 echo -e  ""
@@ -102,14 +100,6 @@ sudo useradd -r nginx
 ;;
 
 6)
-sudo mkdir -p /var/www/
-sudo chmod 755 /var/www
-sudo mkdir -p /var/ngx_pagespeed_cache/
-sudo chown -R nginx:nginx /var/ngx_pagespeed_cache
-sudo usermod -a -G nginx slushman
-;;
-
-7)
 sudo iptables -F 
 sudo iptables -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
 sudo iptables -A INPUT -p tcp ! --syn -m state --state NEW -j DROP
@@ -127,14 +117,14 @@ sudo iptables-save | sudo tee /etc/sysconfig/iptables
 sudo service iptables restart
 ;;
 
-8)
+7)
 sudo yum install fail2ban
 sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
 sudo sed -i 's/port=ssh/port=25000/g' /etc/fail2ban/jail.local 
 sudo service fail2ban start
 ;;
 
-9)
+8)
 cd
 curl https://raw.github.com/wp-cli/wp-cli.github.com/master/installer.sh | bash
 sudo sed -i 's/export PATH/export PATH=/root/.wp-cli/bin:$PATH/g' ~/.bash_profile
@@ -142,12 +132,18 @@ echo "source $HOME/.wp-cli/vendor/wp-cli/wp-cli/utils/wp-completion.bash" >> ~/.
 source ~/.bash_profile
 ;;
 
-10)
+9)
 sudo yum --enablerepo=remi,remi-php55 install memcached php-pecl-memcached.x86_64
 sudo sed -i 's/OPTIONS=""/OPTIONS="-l 127.0.0.1"/g' /etc/sysconfig/memcached
 ;;
 
-11)
+10)
+sudo mkdir -p /var/www/
+sudo chmod 755 /var/www
+sudo mkdir -p /var/ngx_pagespeed_cache/
+sudo chown -R nginx:nginx /var/ngx_pagespeed_cache
+sudo usermod -a -G nginx slushman
+
 sudo mkdir -p /etc/nginx/configs
 sudo mkdir -p /etc/nginx/sites
 sudo mkdir -p /etc/nginx/sites/configs
@@ -166,9 +162,7 @@ sudo mv -f slushhost/www.conf /etc/php-fpm.d/www.conf
 sudo mv -f slushhost/php-fpm.conf /etc/php-fpm.conf
 sudo mv -f slushhost/php.ini /etc/php.ini
 sudo mv -f slushhost/sysctl.conf /etc/sysctl.conf
-;;
 
-12)
 sudo service php-fpm start 
 sudo service nginx start
 sudo service mysqld restart
