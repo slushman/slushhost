@@ -1,20 +1,21 @@
 #!/bin/bash
 scriptloop="y"
 while [ "$scriptloop" = "y" ]; do
-echo -e  "SELinux Setup:"
+echo -e  "Slushhost Setup:"
 echo -e  ""
 echo -e  "1 - Download Repos"
 echo -e  "2 - Install MariaDB"
-echo -e  "3 - Install PHP & PHP-FPM"
-echo -e  "4 - Install nginx & PageSpeed"
-echo -e  "5 - Setup Directories"
-echo -e  "6 - Config iptables"
-echo -e  "7 - Install and Config Fail2Ban"
-echo -e  "8 - Download WordPress"
-echo -e  "9 - memcache"
-echo -e  "10 - Config Server"
-echo -e  "11 - Start server"
-echo -e  "12 - Harden Server"
+echo -e  "3 - Finish MariaDB"
+echo -e  "4 - Install PHP & PHP-FPM"
+echo -e  "5 - Install nginx & PageSpeed"
+echo -e  "6 - Setup Directories"
+echo -e  "7 - Config iptables"
+echo -e  "8 - Install and Config Fail2Ban"
+echo -e  "9 - Download WordPress"
+echo -e  "10 - memcache"
+echo -e  "11 - Config Server"
+echo -e  "12 - Start server"
+echo -e  "13 - Harden Server"
 echo -e  ""
 echo -e  "q - EXIT MYSQL SCRIPT!"
 echo -e  ""
@@ -29,35 +30,76 @@ sudo yum update
 ;;
 
 2)
+sudo mv ~/slushhost/MariaDB.repo /etc/yum.repos.d/MariaDB.repo
 sudo yum -y install MariaDB-server MariaDB-client MariaDB-compat MariaDB-devel MariaDB-shared MariaDB-test
 sudo service mysql start
 sudo /usr/bin/mysql_secure_installation
 ;;
 
 3)
-sudo yum --enablerepo=remi install php-fpm php-mysql php-gd
-sudo yum --enablerepo=remi install php-pear php-mbstring php-mcrypt php-xml
-sudo yum --enablerepo=remi install php-pecl-apc php-devel
+echo -e "Please enter your root database password: "
+read dbpassword
+
+echo -e "Please enter your username: "
+read dbusername
+
+echo -e "Please enter your user password: "
+read dbuserpassword
+
+mysql -uroot -p$dbpassword -e "CREATE USER $dbusername IDENTIFIED BY \'$dbuserpassword\'";
+exit
 ;;
 
 4)
-cd
-sudo yum install gcc-c++ pcre-dev pcre-devel zlib-devel make
-wget https://github.com/pagespeed/ngx_pagespeed/archive/v1.7.30.1-beta.zip
-unzip v1.7.30.1-beta.zip
-wget http://nginx.org/download/nginx-1.4.3.tar.gz 
-tar -xvzf nginx-1.4.3.tar.gz
-cd ngx_pagespeed-1.7.30.1-beta/
-wget https://dl.google.com/dl/page-speed/psol/1.7.30.1.tar.gz 
-tar -xzvf 1.7.30.1.tar.gz
-cd ~/nginx-1.4.3
-./configure --add-module=/home/slushman/ngx_pagespeed-release-1.7.30.1-beta
-make
-sudo make install
-scripts/pagespeed_libraries_generator.sh > ~/pagespeed_libraries.conf
-sudo mv ~/pagespeed_libraries.conf /etc/nginx/configs/
+sudo yum --enablerepo=remi,remi-php55 install php-fpm php-mysql php-gd php-common
+sudo yum --enablerepo=remi,remi-php55 install php-pear php-mbstring php-mcrypt php-xml
+sudo yum --enablerepo=remi,remi-php55 install php-pecl-apc php-devel php-mysqlnd
+;;
 
 5)
+cd
+sudo yum install gcc gcc-c++ pcre-dev pcre-devel zlib-devel make openssl-devel
+wget https://github.com/pagespeed/ngx_pagespeed/archive/v1.7.30.1-beta.zip
+sudo mv v1.7.30.1-beta v1.7.30.1-beta.zip
+unzip v1.7.30.1-beta.zip
+cd ngx_pagespeed-1.7.30.1-beta/
+wget https://dl.google.com/dl/page-speed/psol/1.7.30.1.tar.gz
+tar -xzvf 1.7.30.1.tar.gz
+wget http://nginx.org/download/nginx-1.5.6.tar.gz
+tar -xvzf nginx-1.5.6.tar.gz
+cd ~/nginx-1.5.6
+
+./configure \
+--user=nginx                          \
+--group=nginx                         \
+--prefix=/etc/nginx                   \
+--sbin-path=/usr/sbin/nginx           \
+--conf-path=/etc/nginx/nginx.conf     \
+--pid-path=/var/run/nginx.pid         \
+--lock-path=/var/run/nginx.lock       \
+--error-log-path=/var/log/nginx/error.log \
+--http-log-path=/var/log/nginx/access.log \
+--with-http_gzip_static_module        \
+--with-http_stub_status_module        \
+--with-http_ssl_module                \
+--with-pcre                           \
+--with-file-aio                       \
+--with-http_realip_module             \
+--without-http_scgi_module            \
+--without-http_uwsgi_module           \
+--add-module=$HOME/ngx_pagespeed-1.7.30.1-beta \
+--with-http_spdy_module
+
+sudo make install
+cd ~/ngx_pagespeed-1.7.30.1-beta/
+scripts/pagespeed_libraries_generator.sh > ~/pagespeed_libraries.conf
+sudo mv ~/slushhost/nginx.sh /etc/init.d/nginx
+sudo chmod +x /etc/init.d/nginx
+sudo chkconfig nginx on
+sudo mkdir /var/tmp/nginx
+;;
+
+6)
 sudo mkdir -p /var/www/
 sudo chmod 755 /var/www
 sudo mkdir -p /var/ngx_pagespeed_cache/
@@ -65,7 +107,7 @@ sudo chown -R nginx:nginx /var/ngx_pagespeed_cache
 sudo usermod -a -G nginx slushman
 ;;
 
-6)
+7)
 sudo iptables -F 
 sudo iptables -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
 sudo iptables -A INPUT -p tcp ! --syn -m state --state NEW -j DROP
@@ -83,14 +125,14 @@ sudo iptables-save | sudo tee /etc/sysconfig/iptables
 sudo service iptables restart
 ;;
 
-7)
+8)
 sudo yum install fail2ban
 sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
 sudo sed -i 's/[name=SSH, port=ssh, protocol=tcp]/[name=SSH, port=25000, protocol=tcp]/g' /etc/fail2ban/jail.local 
 sudo service fail2ban start
 ;;
 
-8)
+9)
 cd
 curl https://raw.github.com/wp-cli/wp-cli.github.com/master/installer.sh | bash
 sudo sed -i 's/export PATH/export PATH=/root/.wp-cli/bin:$PATH/g' ~/.bash_profile
@@ -98,12 +140,12 @@ echo "source $HOME/.wp-cli/vendor/wp-cli/wp-cli/utils/wp-completion.bash" >> ~/.
 source ~/.bash_profile
 ;;
 
-9)
-sudo yum --enablerepo=remi install memcached
+10)
+sudo yum --enablerepo=remi,remi-php55 install php-pecl-memcached.x86_64
 sudo sed -i 's/OPTIONS=""/OPTIONS="-l 127.0.0.1"/g' /etc/sysconfig/memcached
 ;;
 
-10)
+11)
 sudo mkdir -p /etc/nginx/configs
 sudo mkdir -p /etc/nginx/sites
 sudo mkdir -p /etc/nginx/sites/configs
@@ -117,6 +159,7 @@ sudo mv /slushhost/nginx/sites/* /etc/nginx/sites/*
 sudo mv /slushhost/nginx/configs/* /etc/nginx/configs/*
 sudo mv /slushhost/nginx/nginx.conf /etc/nginx
 sudo mv /slushhost/nginx/mime.types /etc/nginx
+sudo mv ~/pagespeed_libraries.conf /etc/nginx/configs/
 sudo sed -i 's/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=0/g' /etc/php.ini
 sudo sed -i 's/upload_max_filesize = 2M/upload_max_filesize = 15M/g' /etc/php.ini
 sudo sed -i 's/allow_url_fopen = On/allow_url_fopen = Off/g' /etc/php.ini
@@ -157,7 +200,7 @@ echo ";If you are still developing, set this to 1." >> /etc/php.ini
 echo "apc.stat=0" >> /etc/php.ini
 ;;
 
-11)
+12)
 sudo service php-fpm start 
 sudo service nginx start
 sudo service mysqld restart
@@ -169,7 +212,7 @@ sudo chkconfig --levels 235 memcached on
 sudo chkconfig --levels 235 fail2ban
 ;;
 
-12)
+13)
 echo "# Avoid a smurf attack" >> /etc/sysctl.conf
 echo "net.ipv4.icmp_echo_ignore_broadcasts = 1" >> /etc/sysctl.conf
 echo "" >> /etc/sysctl.conf
