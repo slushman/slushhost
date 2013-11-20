@@ -1,9 +1,11 @@
 #!/bin/bash
 scriptloop="y"
 while [ "$scriptloop" = "y" ]; do
+echo -e  ""
+echo -e  ""
 echo -e  "New Sites:"
 echo -e  ""
-echo -e  "1 - Basic Setup"
+echo -e  "1 - Create new WP site"
 echo -e  "2 - Import Database"
 echo -e  ""
 echo -e  "q - Exit new site script"

@@ -12,11 +12,11 @@ echo -e  "4 - Install PHP & PHP-FPM"
 echo -e  "5 - Install nginx & PageSpeed"
 echo -e  "6 - Config iptables"
 echo -e  "7 - Install and Config Fail2Ban"
-echo -e  "8 - Download WordPress"
+echo -e  "8 - WP-CLI"
 echo -e  "9 - memcache"
 echo -e  "10 - Config, Harden, and Start Server"
 echo -e  ""
-echo -e  "q - EXIT MYSQL SCRIPT!"
+echo -e  "q - Exit Installers"
 echo -e  ""
 echo -e  "Please enter NUMBER of choice (example: 3):"
 read choice
@@ -126,10 +126,15 @@ sudo service fail2ban start
 
 8)
 cd
-curl https://raw.github.com/wp-cli/wp-cli.github.com/master/installer.sh | bash
-sudo sed -i 's/export PATH/export PATH=/root/.wp-cli/bin:$PATH/g' ~/.bash_profile
-echo "source $HOME/.wp-cli/vendor/wp-cli/wp-cli/utils/wp-completion.bash" >> ~/.bash_profile
+#curl https://raw.github.com/wp-cli/wp-cli.github.com/master/installer.sh | bash
+git clone git://github.com/wp-cli/wp-cli.git
+sudo mv -f slushhost/bash_profile ~/.bash_profile
 source ~/.bash_profile
+cd wp-cli
+get_composer
+composer install --dev
+composer require --prefer-source wp-cli/wp-cli=@stable
+composer --quiet require --prefer-source 'd11wtq/boris=@stable'
 ;;
 
 9)
@@ -144,19 +149,22 @@ sudo mkdir -p /var/ngx_pagespeed_cache/
 sudo chown -R nginx:nginx /var/ngx_pagespeed_cache
 sudo usermod -a -G nginx slushman
 
-sudo mkdir -p /etc/nginx/configs
-sudo mkdir -p /etc/nginx/sites
-sudo mkdir -p /etc/nginx/sites/configs
+#sudo mkdir -p /etc/nginx/configs
+#sudo mkdir -p /etc/nginx/sites
+#sudo mkdir -p /etc/nginx/sites/configs
 sudo mv /etc/nginx/nginx.conf /etc/nginx/old.nginx.conf
 sudo mv /etc/nginx/mime.types /etc/nginx/old.mime.types
 sudo cp /etc/php.ini /etc/old.php.ini
 sudo cp /etc/php-fpm.d/www.conf  /etc/php-fpm.d/old.www.conf
 sudo mkdir /etc/nginx/configs/.htpasswd/
 sudo htpasswd -c /etc/nginx/configs/.htpasswd/passwd slushman
-sudo mv slushhost/nginx/sites/* /etc/nginx/sites/*
-sudo mv slushhost/nginx/configs/* /etc/nginx/configs/*
-sudo mv slushhost/nginx/nginx.conf /etc/nginx
-sudo mv slushhost/nginx/mime.types /etc/nginx
+
+# Should move everything in nginx folder to /etc/nginx folder
+sudo mv -f slushhost/nginx/* /etc/nginx
+#sudo mv slushhost/nginx/sites/* /etc/nginx/sites/*
+#sudo mv slushhost/nginx/configs/* /etc/nginx/configs/*
+#sudo mv slushhost/nginx/nginx.conf /etc/nginx
+#sudo mv slushhost/nginx/mime.types /etc/nginx
 sudo mv ~/pagespeed_libraries.conf /etc/nginx/configs/
 sudo mv -f slushhost/www.conf /etc/php-fpm.d/www.conf
 sudo mv -f slushhost/php-fpm.conf /etc/php-fpm.conf

@@ -1,13 +1,15 @@
 #!/bin/bash
 scriptloop="y"
 while [ "$scriptloop" = "y" ]; do
+echo -e  ""
+echo -e  ""
 echo -e  "SELinux Setup:"
 echo -e  ""
 echo -e  "1 - Download and install"
 echo -e  "2 - Set config"
 echo -e  "3 - Create a new MySQL user"
 echo -e  ""
-echo -e  "q - EXIT MYSQL SCRIPT!"
+echo -e  "q - Exit SELinux Setup"
 echo -e  ""
 echo -e  "Please enter NUMBER of choice (example: 3):"
 read choice
