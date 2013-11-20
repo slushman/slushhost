@@ -37,9 +37,10 @@ mysql -uroot -p$dbpassword -e "CREATE DATABASE IF NOT EXISTS $dbname;"
 mysql -uroot -p$dbpassword -e "GRANT ALL ON $dbname.* TO $dbuser;"
 mysql -uroot -p$dbpassword -e "FLUSH PRIVILEGES;"
 
-sudo chown -R nginx:nginx /var/www/*
+sudo ln -s /usr/share/phpmyadmin/ /var/www/$sitedomain/public_html
 sudo cp /etc/nginx/sites/defaultsite.settings /etc/nginx/sites/$sitename.conf
 sudo sed -i 's/replacewithsitedomain/$sitedomain/g' /etc/nginx/sites/$sitename.conf
+
 
 echo -e "Please enter your admin email: "
 read adminemail
@@ -71,7 +72,8 @@ wp plugin install wordpress-seo --activate
 wp plugin install google-analyticator --activate
 wp plugin install jetpack --activate
 
-sudo service nginx reload
+sudo chown -R nginx:nginx /var/www/*
+sudo service nginx restart
 ;;
 
 2)

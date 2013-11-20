@@ -14,7 +14,8 @@ echo -e  "6 - Config iptables"
 echo -e  "7 - Install and Config Fail2Ban"
 echo -e  "8 - WP-CLI"
 echo -e  "9 - memcache"
-echo -e  "10 - Config, Harden, and Start Server"
+echo -e  "10 - phpMyAdmin"
+echo -e  "11 - Config, Harden, and Start Server"
 echo -e  ""
 echo -e  "q - Exit Installers"
 echo -e  ""
@@ -143,6 +144,9 @@ sudo sed -i 's/OPTIONS=""/OPTIONS="-l 127.0.0.1"/g' /etc/sysconfig/memcached
 ;;
 
 10)
+sudo yum --enablerepo=remi,remi-php55 install phpmyadmin
+
+11)
 sudo mkdir -p /var/www/
 sudo chmod 755 /var/www
 sudo mkdir -p /var/ngx_pagespeed_cache/
@@ -152,6 +156,7 @@ sudo usermod -a -G nginx slushman
 #sudo mkdir -p /etc/nginx/configs
 #sudo mkdir -p /etc/nginx/sites
 #sudo mkdir -p /etc/nginx/sites/configs
+
 sudo mv /etc/nginx/nginx.conf /etc/nginx/old.nginx.conf
 sudo mv /etc/nginx/mime.types /etc/nginx/old.mime.types
 sudo cp /etc/php.ini /etc/old.php.ini
@@ -160,11 +165,14 @@ sudo mkdir /etc/nginx/configs/.htpasswd/
 sudo htpasswd -c /etc/nginx/configs/.htpasswd/passwd slushman
 
 # Should move everything in nginx folder to /etc/nginx folder
-sudo mv -f slushhost/nginx/* /etc/nginx
+cd slushhost/nginx/
+sudo mv -f * /etc/nginx
+
 #sudo mv slushhost/nginx/sites/* /etc/nginx/sites/*
 #sudo mv slushhost/nginx/configs/* /etc/nginx/configs/*
 #sudo mv slushhost/nginx/nginx.conf /etc/nginx
 #sudo mv slushhost/nginx/mime.types /etc/nginx
+
 sudo mv ~/pagespeed_libraries.conf /etc/nginx/configs/
 sudo mv -f slushhost/www.conf /etc/php-fpm.d/www.conf
 sudo mv -f slushhost/php-fpm.conf /etc/php-fpm.conf
