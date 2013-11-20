@@ -5,8 +5,11 @@ echo -e  ""
 echo -e  ""
 echo -e  "New Sites:"
 echo -e  ""
-echo -e  "1 - Create new WP site"
-echo -e  "2 - Import Database"
+echo -e  "1 - Create directory"
+echo -e  "2 - Create MysQL database"
+echo -e  "3 - Setup nginx configs"
+echo -e  "4 - Create new WP site"
+echo -e  "5 - Import Database"
 echo -e  ""
 echo -e  "q - Exit new site script"
 echo -e  ""
@@ -18,11 +21,13 @@ case $choice in
 echo -e "Please enter your site domain: "
 read sitedomain
 
-echo -e "Please enter your site name: "
-read sitename
-
 sudo mkdir -p /var/www/$sitedomain/public_html
-cd /var/www/$sitedomain/public_html
+sudo ln -s /usr/share/phpmyadmin/ /var/www/$sitedomain/public_html
+;;
+
+2)
+echo -e "Please enter your MySQL password: "
+read dbpassword
 
 echo -e "Please enter your database name (no punctuation please): "
 read dbname
@@ -30,27 +35,48 @@ read dbname
 echo -e "Please enter your database username: "
 read dbuser
 
-echo -e "Please enter your database password: "
-read dbpassword
-
 mysql -uroot -p$dbpassword -e "CREATE DATABASE IF NOT EXISTS $dbname;"
 mysql -uroot -p$dbpassword -e "GRANT ALL ON $dbname.* TO $dbuser;"
 mysql -uroot -p$dbpassword -e "FLUSH PRIVILEGES;"
+;;
 
-sudo ln -s /usr/share/phpmyadmin/ /var/www/$sitedomain/public_html
+3)
+echo -e "Please enter your site name (one-word, not the domain): "
+read sitename
+
 sudo cp /etc/nginx/sites/defaultsite.settings /etc/nginx/sites/$sitename.conf
 sudo sed -i 's/replacewithsitedomain/$sitedomain/g' /etc/nginx/sites/$sitename.conf
+;;
 
+4)
+if [ -z "$sitedomain" ]; then
+	echo -e "Please enter your site domain: "
+	read sitedomain
+fi
+
+echo -e "Please enter your site title: "
+read sitetitle
+
+echo -e "Please enter your admin username: "
+read adminuser
 
 echo -e "Please enter your admin email: "
 read adminemail
 
+echo -e "Please enter your admin password: "
+read adminpass
+
+echo -e "Please enter the WP database prefix: "
+read dbprefix
+
+cd /var/www/$sitedomain/public_html
+
 wp core download
-wp core config --dbname=$dbname --dbuser=$dbuser --dbpass=$dbpassword
-wp core install
+wp core config --dbname=$dbname --dbuser=$dbuser --dbpass=$dbpassword --dbprefix=$dbprefix
+wp core install --url=$sitedomain --title=$sitetitle --admin_user=dummyadmin --admin_password=dummyadminpassword --admin_email=dummy@example.com
 wp user delete 1
 wp site empty
-wp user create $dbuser $adminemail --role=administrator
+wp user create $adminuser $adminemail --user-pass=$adminpass --role=administrator
 wp option update cadmin_email $adminemail
 wp option update cavatar_rating 'G'
 wp option update cblogname $sitename
@@ -72,24 +98,24 @@ wp plugin install wordpress-seo --activate
 wp plugin install google-analyticator --activate
 wp plugin install jetpack --activate
 
-sudo chown -R nginx:nginx /var/www/*
+sudo chown -R nginx:nginx /var/www/$sitedomain/*
 sudo service nginx restart
 ;;
 
-2)
+5)
+echo -e "Please enter your MySQL password: "
+read dbpassword
+
 echo -e "Please enter name of the database to import into: "
 read importtodbname
 
-echo -e "Please enter name of the directory where the database file resides: "
-read importdbdir
+echo -e "Please enter directory and database file to import (exclude the .sql extension): "
+read dbfile
 
 echo -e "Please enter name of the database file to import: "
 read dbfile
 
-echo -e "Please enter name of the database to import into: "
-read dbpassword
-
-mysql -uroot -p$dbpassword $importtodbname < $importdbdir/$dbfile.sql
+mysql -uroot -p$dbpassword $importtodbname < $dbfile.sql
 ;;
 
 q)
