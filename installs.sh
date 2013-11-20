@@ -154,31 +154,18 @@ sudo mkdir -p /var/ngx_pagespeed_cache/
 sudo chown -R nginx:nginx /var/ngx_pagespeed_cache
 sudo usermod -a -G nginx slushman
 
-#sudo mkdir -p /etc/nginx/configs
-#sudo mkdir -p /etc/nginx/sites
-#sudo mkdir -p /etc/nginx/sites/configs
-
 sudo mv /etc/nginx/nginx.conf /etc/nginx/old.nginx.conf
 sudo mv /etc/nginx/mime.types /etc/nginx/old.mime.types
 sudo cp /etc/php.ini /etc/old.php.ini
 sudo cp /etc/php-fpm.d/www.conf  /etc/php-fpm.d/old.www.conf
-sudo mkdir /etc/nginx/configs/.htpasswd/
-sudo htpasswd -c /etc/nginx/configs/.htpasswd/passwd slushman
 
-# Should move everything in nginx folder to /etc/nginx folder
-cd slushhost/nginx/
+cd ~/slushhost/nginx/
 sudo mv -f * /etc/nginx
-
-#sudo mv slushhost/nginx/sites/* /etc/nginx/sites/*
-#sudo mv slushhost/nginx/configs/* /etc/nginx/configs/*
-#sudo mv slushhost/nginx/nginx.conf /etc/nginx
-#sudo mv slushhost/nginx/mime.types /etc/nginx
-
 sudo mv ~/pagespeed_libraries.conf /etc/nginx/configs/
-sudo mv -f slushhost/www.conf /etc/php-fpm.d/www.conf
-sudo mv -f slushhost/php-fpm.conf /etc/php-fpm.conf
-sudo mv -f slushhost/php.ini /etc/php.ini
-sudo mv -f slushhost/sysctl.conf /etc/sysctl.conf
+sudo mv -f ~/slushhost/www.conf /etc/php-fpm.d/www.conf
+sudo mv -f ~/slushhost/php-fpm.conf /etc/php-fpm.conf
+sudo mv -f ~/slushhost/php.ini /etc/php.ini
+sudo mv -f ~/slushhost/sysctl.conf /etc/sysctl.conf
 
 sudo service php-fpm start 
 sudo service nginx start
