@@ -145,6 +145,7 @@ sudo sed -i 's/OPTIONS=""/OPTIONS="-l 127.0.0.1"/g' /etc/sysconfig/memcached
 
 10)
 sudo yum --enablerepo=remi,remi-php55 install phpmyadmin
+;;
 
 11)
 sudo mkdir -p /var/www/
