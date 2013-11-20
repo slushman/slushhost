@@ -165,9 +165,9 @@ sudo mv -f slushhost/sysctl.conf /etc/sysctl.conf
 
 sudo service php-fpm start 
 sudo service nginx start
-sudo service mysqld restart
+sudo service mysql restart
 sudo service memcached start
-sudo chkconfig --levels 235 mysqld on
+sudo chkconfig --levels 235 mysql on
 sudo chkconfig --levels 235 nginx on
 sudo chkconfig --levels 235 php-fpm on
 sudo chkconfig --levels 235 memcached on
