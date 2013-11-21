@@ -38,6 +38,14 @@ read dbuser
 mysql -uroot -p$dbpassword -e "CREATE DATABASE IF NOT EXISTS $dbname;"
 mysql -uroot -p$dbpassword -e "GRANT ALL ON $dbname.* TO $dbuser;"
 mysql -uroot -p$dbpassword -e "FLUSH PRIVILEGES;"
+
+result=$(mysql -s -N -e "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='db'")
+if [ -z "$result" ];
+then 
+	echo "Database was not created"
+else
+	echo "Database created successfully"
+fi
 ;;
 
 3)
@@ -49,10 +57,8 @@ sudo sed -i 's/replacewithsitedomain/$sitedomain/g' /etc/nginx/sites/$sitename.c
 ;;
 
 4)
-if [ -z "$sitedomain" ]; then
-	echo -e "Please enter your site domain: "
-	read sitedomain
-fi
+echo -e "Please enter your site domain: "
+read sitedomain
 
 echo -e "Please enter your site title: "
 read sitetitle
@@ -69,11 +75,17 @@ read adminpass
 echo -e "Please enter the WP database prefix: "
 read dbprefix
 
+sudo chown -R slushman:slushman /var/www/*
 cd /var/www/$sitedomain/public_html
 
 wp core download
-wp core config --dbname=$dbname --dbuser=$dbuser --dbpass=$dbpassword --dbprefix=$dbprefix
+
+:<<'COMMENTOUT'
+wp core config --dbname=$dbname --dbuser=root --dbpass=$dbpassword --dbprefix=$dbprefix
 wp core install --url=$sitedomain --title=$sitetitle --admin_user=dummyadmin --admin_password=dummyadminpassword --admin_email=dummy@example.com
+if $(wp core is-installed); then
+    echo "WordPress is installed!"
+fi
 wp user delete 1
 wp site empty
 wp user create $adminuser $adminemail --user-pass=$adminpass --role=administrator
@@ -97,8 +109,9 @@ wp plugin install better-wp-security --activate
 wp plugin install wordpress-seo --activate
 wp plugin install google-analyticator --activate
 wp plugin install jetpack --activate
+COMMENTOUT
 
-sudo chown -R nginx:nginx /var/www/$sitedomain/*
+sudo chown -R nginx:nginx /var/www/*
 sudo service nginx restart
 ;;
 

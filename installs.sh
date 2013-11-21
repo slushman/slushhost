@@ -130,6 +130,7 @@ cd
 #curl https://raw.github.com/wp-cli/wp-cli.github.com/master/installer.sh | bash
 git clone git://github.com/wp-cli/wp-cli.git
 sudo mv -f slushhost/bash_profile ~/.bash_profile
+sleep 1
 source ~/.bash_profile
 cd wp-cli
 get_composer
@@ -175,7 +176,7 @@ sudo chkconfig --levels 235 mysql on
 sudo chkconfig --levels 235 nginx on
 sudo chkconfig --levels 235 php-fpm on
 sudo chkconfig --levels 235 memcached on
-sudo chkconfig --levels 235 fail2ban
+sudo chkconfig --levels 235 fail2ban on
 ;;
 
 q)
