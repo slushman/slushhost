@@ -27,7 +27,7 @@ sudo ln -s /usr/share/phpmyadmin/ /var/www/$sitedomain/public_html
 
 2)
 echo -e "Please enter your MySQL password: "
-read dbpassword
+read rootpassword
 
 echo -e "Please enter your database name (no punctuation please): "
 read dbname
@@ -35,17 +35,14 @@ read dbname
 echo -e "Please enter your database username: "
 read dbuser
 
-mysql -uroot -p$dbpassword -e "CREATE DATABASE IF NOT EXISTS $dbname;"
-mysql -uroot -p$dbpassword -e "GRANT ALL ON $dbname.* TO $dbuser;"
-mysql -uroot -p$dbpassword -e "FLUSH PRIVILEGES;"
+echo -e "Please enter your database user's password': "
+read userpassword
 
-result=$(mysql -s -N -e "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='db'")
-if [ -z "$result" ];
-then 
-	echo "Database was not created"
-else
-	echo "Database created successfully"
-fi
+sudo mysqladmin -uroot -p$rootpassword create $dbname
+mysql -uroot -p$rootpassword -e "GRANT ALL ON $dbname.* TO '$dbuser'@'localhost';"
+sudo mysqladmin -uroot -p$rootpassword reload
+
+test -d "/var/lib/mysql/$dbname" && echo "Database created successfully" || echo "Database was not created"
 ;;
 
 3)

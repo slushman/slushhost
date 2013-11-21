@@ -126,14 +126,12 @@ sudo service fail2ban start
 ;;
 
 8)
+source ~/.bash_profile
 cd
 #curl https://raw.github.com/wp-cli/wp-cli.github.com/master/installer.sh | bash
 git clone git://github.com/wp-cli/wp-cli.git
-sudo mv -f slushhost/bash_profile.txt ~/.bash_profile
-sleep 1
-source ~/.bash_profile
 cd wp-cli
-get_composer
+curl -s https://getcomposer.org/installer | php -d allow_url_fopen=1 -d suhosin.executor.include.whitelist=phar
 composer install --dev
 composer require --prefer-source wp-cli/wp-cli=@stable
 composer --quiet require --prefer-source 'd11wtq/boris=@stable'
