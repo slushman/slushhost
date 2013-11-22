@@ -38,9 +38,9 @@ read dbuser
 echo -e "Please enter your database user's password': "
 read userpassword
 
-sudo mysqladmin -uroot -p$rootpassword create $dbname
+mysqladmin -uroot -p$rootpassword create $dbname
 mysql -uroot -p$rootpassword -e "GRANT ALL ON $dbname.* TO '$dbuser'@'localhost';"
-sudo mysqladmin -uroot -p$rootpassword reload
+mysqladmin -uroot -p$rootpassword reload
 
 test -d "/var/lib/mysql/$dbname" && echo "Database created successfully" || echo "Database was not created"
 ;;
@@ -78,6 +78,8 @@ cd /var/www/$sitedomain/public_html
 wp core download
 
 :<<'COMMENTOUT'
+# Comment this bit out for now until the wp command is recognized and works successfully
+
 wp core config --dbname=$dbname --dbuser=root --dbpass=$dbpassword --dbprefix=$dbprefix
 wp core install --url=$sitedomain --title=$sitetitle --admin_user=dummyadmin --admin_password=dummyadminpassword --admin_email=dummy@example.com
 if $(wp core is-installed); then
@@ -85,6 +87,7 @@ if $(wp core is-installed); then
 fi
 wp user delete 1
 wp site empty
+wp plugin delete hello-dolly
 wp user create $adminuser $adminemail --user-pass=$adminpass --role=administrator
 wp option update cadmin_email $adminemail
 wp option update cavatar_rating 'G'
@@ -109,6 +112,7 @@ wp plugin install jetpack --activate
 COMMENTOUT
 
 sudo chown -R nginx:nginx /var/www/*
+sudo chown -R nginx:nginx /var/log/*
 sudo service nginx restart
 ;;
 

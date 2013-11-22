@@ -1,5 +1,6 @@
 #!/bin/bash
 scriptloop="y"
+pathToShell="installers/"
 while [ "$scriptloop" = "y" ]; do
 echo -e  ""
 echo -e  ""
@@ -128,13 +129,13 @@ sudo service fail2ban start
 8)
 source ~/.bash_profile
 cd
-#curl https://raw.github.com/wp-cli/wp-cli.github.com/master/installer.sh | bash
 git clone git://github.com/wp-cli/wp-cli.git
 cd wp-cli
-curl -s https://getcomposer.org/installer | php -d allow_url_fopen=1 -d suhosin.executor.include.whitelist=phar
-composer install --dev
-composer require --prefer-source wp-cli/wp-cli=@stable
-composer --quiet require --prefer-source 'd11wtq/boris=@stable'
+curl -s https://getcomposer.org/installer | php -d memory_limit=512M -d allow_url_fopen=1 -d suhosin.executor.include.whitelist=phar
+php composer.phar install --dev
+php composer.phar require --prefer-source wp-cli/wp-cli=@stable
+php composer.phar --quiet require --prefer-source 'd11wtq/boris=@stable'
+ln -s ~/wp-cli/bin/wp /usr/local/bin/
 ;;
 
 9)
