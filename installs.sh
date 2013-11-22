@@ -135,7 +135,7 @@ curl -s https://getcomposer.org/installer | php -d memory_limit=512M -d allow_ur
 php composer.phar install --dev
 php composer.phar require --prefer-source wp-cli/wp-cli=@stable
 php composer.phar --quiet require --prefer-source 'd11wtq/boris=@stable'
-ln -s ~/wp-cli/bin/wp /usr/local/bin/
+sudo ln -s ~/wp-cli/bin/wp /usr/local/bin/
 ;;
 
 9)
