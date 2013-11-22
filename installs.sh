@@ -47,7 +47,7 @@ read dbusername
 echo -e "Please enter your database password: "
 read dbuserpassword
 
-mysql -uroot -p$dbpassword -e "CREATE USER $dbusername IDENTIFIED BY '$dbuserpassword'";
+mysql -uroot -p$dbpassword -e "CREATE USER '$dbusername'@'localhost' IDENTIFIED BY '$dbuserpassword'";
 exit
 ;;
 

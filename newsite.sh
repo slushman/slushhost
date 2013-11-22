@@ -50,6 +50,9 @@ read adminemail
 echo -e "Please enter your admin password: "
 read adminpass
 
+echo -e "Please enter the MySQL root password: "
+read rootpassword
+
 echo -e "Please enter the database user: "
 read dbuser
 
@@ -59,32 +62,36 @@ read dbpassword
 echo -e "Please enter the WP database prefix: "
 read dbprefix
 
-sitename=${sitedomain:0:-4}
+sitename=${sitedomain:0:${#sitedomain}-4}
 dbname="${sitename}db"
 
+# Create database
+mysqladmin -uroot -p$rootpassword create $dbname
+mysql -uroot -p$rootpassword -e "GRANT ALL ON $dbname.* TO '$dbuser'@'localhost';"
+mysqladmin -uroot -p$rootpassword reload
+
+test -d "/var/lib/mysql/$dbname" && echo "Database created successfully" || echo "Database was not created"
+
+# Create nginx site configs
 sudo cp /etc/nginx/sites/defaultsite.settings /etc/nginx/sites/$sitename.conf
 sudo sed -i 's/replacewithsitedomain/'$sitedomain'/g' /etc/nginx/sites/$sitename.conf
 
+# Create site directories
 sudo mkdir -p /var/www/$sitedomain/public_html
 sudo ln -s /usr/share/phpmyadmin/ /var/www/$sitedomain/public_html
 sudo chown -R slushman:slushman /var/www/*
 cd /var/www/$sitedomain/public_html
 
+# Download, configure, and install WordPress
 wp core download
 wp core config --dbname=$dbname --dbuser=$dbuser --dbpass=$dbpassword --dbprefix=$dbprefix
-wp db create --yes
-
-# This isn't working, lets try the wp db create method instead
-# mysqladmin -uroot -p$rootpassword create $dbname
-# mysql -uroot -p$rootpassword -e "GRANT ALL ON $dbname.* TO '$dbuser'@'localhost';"
-# mysqladmin -uroot -p$rootpassword reload
-
-test -d "/var/lib/mysql/$dbname" && echo "Database created successfully" || echo "Database was not created"
 
 wp core install --url=$sitedomain --title=$sitetitle --admin_user=dummyadmin --admin_password=dummyadminpassword --admin_email=dummy@example.com
+
 if $(wp core is-installed); then
     echo "WordPress is installed!"
 fi
+
 wp user delete 1
 wp site empty
 wp plugin delete hello-dolly
@@ -109,6 +116,7 @@ wp plugin install wordpress-seo --activate
 wp plugin install google-analyticator --activate
 wp plugin install jetpack --activate
 
+# Set permissions and restart nginx
 sudo chown -R nginx:nginx /var/www/*
 sudo chown -R nginx:nginx /var/log/*
 sudo service nginx restart
