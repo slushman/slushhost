@@ -105,7 +105,7 @@ test -d "/var/lib/mysql/$dbname" && echo "Database created successfully" || echo
 
 # Create nginx site configs
 sudo cp /etc/nginx/sites/$settingfile.settings /etc/nginx/sites/$sitename.conf
-sudo sed -i 's/replacewithsitedomain/'$sitedomain'/g' /etc/nginx/sites/$sitedomain.conf
+sudo sed -i 's/replacewithsitedomain/'$sitedomain'/g' /etc/nginx/sites/$sitename.conf
 
 # Create site directories
 sudo mkdir -p /var/www/$sitedomain/public_html
