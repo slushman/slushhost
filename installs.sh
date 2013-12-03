@@ -38,16 +38,21 @@ sudo /usr/bin/mysql_secure_installation
 ;;
 
 3)
-echo -e "Please enter the MySQL password: "
-read dbpassword
+if test -r "~/slushhost.cfg" -a -f "~/slushhost.cfg"
+	then
+	source ~/slushhost.cfg
+else 
+	echo -e "Please enter the MySQL password: "
+	read rootpassword
 
-echo -e "Please enter your database username: "
-read dbusername
+	echo -e "Please enter your database username: "
+	read dbuser
 
-echo -e "Please enter your database password: "
-read dbuserpassword
+	echo -e "Please enter your database password: "
+	read dbpassword
+fi
 
-mysql -uroot -p$dbpassword -e "CREATE USER '$dbusername'@'localhost' IDENTIFIED BY '$dbuserpassword'";
+mysql -uroot -p$rootpassword -e "CREATE USER '$dbuser'@'localhost' IDENTIFIED BY '$dbpassword'";
 exit
 ;;
 
@@ -144,7 +149,7 @@ sudo sed -i 's/OPTIONS=""/OPTIONS="-l 127.0.0.1"/g' /etc/sysconfig/memcached
 ;;
 
 10)
-sudo yum --enablerepo=remi,remi-php55 install phpmyadmin
+sudo yum --enablerepo=remi,remi-test install phpmyadmin
 ;;
 
 11)
@@ -154,10 +159,10 @@ sudo mkdir -p /var/ngx_pagespeed_cache/
 sudo chown -R nginx:nginx /var/ngx_pagespeed_cache
 sudo usermod -a -G nginx slushman
 
-sudo mv /etc/nginx/nginx.conf /etc/nginx/old.nginx.conf
-sudo mv /etc/nginx/mime.types /etc/nginx/old.mime.types
-sudo cp /etc/php.ini /etc/old.php.ini
-sudo cp /etc/php-fpm.d/www.conf  /etc/php-fpm.d/old.www.conf
+sudo mv /etc/nginx/nginx.conf /etc/nginx/old.nginx.settings
+sudo mv /etc/nginx/mime.types /etc/nginx/old.mime.types.settings
+sudo cp /etc/php.ini /etc/old.php.settings
+sudo cp /etc/php-fpm.d/www.conf  /etc/php-fpm.d/old.www.settings
 
 cd ~/slushhost/nginx/
 sudo mv -f * /etc/nginx

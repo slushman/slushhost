@@ -1,0 +1,12 @@
+server
+{
+        server_name     pma.replacewithsitedomain;
+        root            /usr/share/phpMyAdmin;
+        index           index.php index.html index.htm;
+
+        # Brings in security, defaults, etc
+        include                 sites/pma/*.conf;
+
+        #include cache file
+        include                 sites/configs/cache.conf;
+}

@@ -5,9 +5,9 @@ echo -e  ""
 echo -e  ""
 echo -e  "New Sites:"
 echo -e  ""
-echo -e  "1 - Setup New Site"
-echo -e  "2 - Setup Site with WordPress"
-echo -e  "5 - Import Database"
+echo -e  "1 - Import Database"
+echo -e  "2 - Setup New Site"
+echo -e  "3 - Setup Site with WordPress"
 echo -e  ""
 echo -e  "q - Exit new site script"
 echo -e  ""
@@ -16,6 +16,24 @@ read choice
 case $choice in
 
 1)
+if test -r "~/slushhost.cfg" -a -f "~/slushhost.cfg"
+	then
+	source ~/slushhost.cfg
+else 
+	echo -e "Please enter the MySQL password: "
+	read rootpassword
+fi
+
+echo -e "Please enter name of the database to import into: "
+read importtodbname
+
+echo -e "Please enter directory and database file to import (exclude the .sql extension): "
+read dbfile
+
+mysql -uroot -p$rootpassword $importtodbname < $dbfile.sql
+;;
+
+2)
 echo -e "Please enter your domain: "
 read sitedomain
 
@@ -25,7 +43,7 @@ sudo cp /etc/nginx/sites/defaultsite.settings /etc/nginx/sites/$sitename.conf
 sudo sed -i 's/replacewithsitedomain/'$sitedomain'/g' /etc/nginx/sites/$sitename.conf
 
 sudo mkdir -p /var/www/$sitedomain/public_html
-sudo ln -s /usr/share/phpmyadmin/ /var/www/$sitedomain/public_html
+sudo ln -s /usr/share/phpMyAdmin/ /var/www/$sitedomain/public_html
 sudo chown -R slushman:slushman /var/www/*
 cd /var/www/$sitedomain/public_html
 
@@ -34,36 +52,49 @@ sudo chown -R nginx:nginx /var/log/*
 sudo service nginx restart
 ;;
 
-2)
-echo -e "Please enter your domain: "
+3)
+echo -e "Please enter your domain (with subdomain, if needed): "
 read sitedomain
 
 echo -e "Please enter your site title: "
 read sitetitle
 
-echo -e "Please enter your admin username: "
-read adminuser
-
-echo -e "Please enter your admin email: "
-read adminemail
-
-echo -e "Please enter your admin password: "
-read adminpass
-
-echo -e "Please enter the MySQL root password: "
-read rootpassword
-
-echo -e "Please enter the database user: "
-read dbuser
-
-echo -e "Please enter the user\'s database password: "
-read dbpassword
-
 echo -e "Please enter the WP database prefix: "
 read dbprefix
 
+if test -r "~/slushhost.cfg" -a -f "~/slushhost.cfg"
+	then
+	source ~/slushhost.cfg
+else 
+	echo -e "Please enter your admin username: "
+	read adminuser
+
+	echo -e "Please enter your admin email: "
+	read adminemail
+
+	echo -e "Please enter your admin password: "
+	read adminpass
+
+	echo -e "Please enter the MySQL password: "
+	read rootpassword
+
+	echo -e "Please enter your database username: "
+	read dbuser
+
+	echo -e "Please enter your database password: "
+	read dbpassword
+fi
+
 sitename=${sitedomain:0:${#sitedomain}-4}
-dbname="${sitename}db"
+
+read -p "Is this site's domain a subdomain? (yes or no)" subchoice 
+if [ "$subchoice" = "yes" ]; then
+	settingfile=subdomain
+	dbname="${sitename/./}db"
+else
+	settingfile=defaultsite
+	dbname="${sitename}db"
+fi
 
 # Create database
 mysqladmin -uroot -p$rootpassword create $dbname
@@ -73,8 +104,8 @@ mysqladmin -uroot -p$rootpassword reload
 test -d "/var/lib/mysql/$dbname" && echo "Database created successfully" || echo "Database was not created"
 
 # Create nginx site configs
-sudo cp /etc/nginx/sites/defaultsite.settings /etc/nginx/sites/$sitename.conf
-sudo sed -i 's/replacewithsitedomain/'$sitedomain'/g' /etc/nginx/sites/$sitename.conf
+sudo cp /etc/nginx/sites/$settingfile.settings /etc/nginx/sites/$sitename.conf
+sudo sed -i 's/replacewithsitedomain/'$sitedomain'/g' /etc/nginx/sites/$sitedomain.conf
 
 # Create site directories
 sudo mkdir -p /var/www/$sitedomain/public_html
@@ -84,7 +115,7 @@ cd /var/www/$sitedomain/public_html
 
 # Download, configure, and install WordPress
 wp core download
-wp core config --dbname=$dbname --dbuser=$dbuser --dbpass=$dbpassword --dbprefix=$dbprefix
+wp core config --dbname=$dbname --dbuser=$dbuser --dbpass=$dbpassword --dbprefix="${dbprefix}_"
 
 wp core install --url=$sitedomain --title=$sitetitle --admin_user=dummyadmin --admin_password=dummyadminpassword --admin_email=dummy@example.com
 
@@ -94,8 +125,9 @@ fi
 
 wp user delete 1
 wp site empty
-wp plugin delete hello-dolly
-wp user create $adminuser $adminemail --user-pass=$adminpass --role=administrator
+wp plugin delete hello
+wp user create $adminuser $adminemail --user_pass=$adminpass
+wp user add-role $adminuser administrator
 wp option update cadmin_email $adminemail
 wp option update cavatar_rating 'G'
 wp option delete cblogdescription
@@ -116,26 +148,12 @@ wp plugin install wordpress-seo --activate
 wp plugin install google-analyticator --activate
 wp plugin install jetpack --activate
 
+sudo rm -rf /var/www/$sitedomain/public_html/wp-config-sample.php
+
 # Set permissions and restart nginx
 sudo chown -R nginx:nginx /var/www/*
 sudo chown -R nginx:nginx /var/log/*
-sudo service nginx restart
-;;
-
-3)
-echo -e "Please enter your MySQL password: "
-read dbpassword
-
-echo -e "Please enter name of the database to import into: "
-read importtodbname
-
-echo -e "Please enter directory and database file to import (exclude the .sql extension): "
-read dbfile
-
-echo -e "Please enter name of the database file to import: "
-read dbfile
-
-mysql -uroot -p$dbpassword $importtodbname < $dbfile.sql
+sudo service nginx reload
 ;;
 
 q)
