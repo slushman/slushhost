@@ -172,6 +172,13 @@ sudo mv -f ~/slushhost/php-fpm.conf /etc/php-fpm.conf
 sudo mv -f ~/slushhost/php.ini /etc/php.ini
 sudo mv -f ~/slushhost/sysctl.conf /etc/sysctl.conf
 
+sudo dd if=/dev/zero of=/swapfile bs=1024 count=512k
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo "/swapfile          swap            swap    defaults        0 0" >> /etc/fstab
+chown root:root /swapfile 
+chmod 0600 /swapfile
+
 sudo service php-fpm start 
 sudo service nginx start
 sudo service mysql restart

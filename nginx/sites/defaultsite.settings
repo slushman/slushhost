@@ -1,8 +1,8 @@
 server
 {
-     server_name 		replacewithsitedomain www.replacewithsitedomain;
-     root 				/var/www/replacewithsitedomain/public_html;
+     server_name replacewithsitedomain www.replacewithsitedomain;
+     root/var/www/replacewithsitedomain/public_html;
 
      # Brings in security, defaults, etc
-     include 			sites/configs/*.conf;
+     include sites/configs/*.conf;
 }

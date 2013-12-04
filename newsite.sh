@@ -5,9 +5,10 @@ echo -e  ""
 echo -e  ""
 echo -e  "New Sites:"
 echo -e  ""
-echo -e  "1 - Import Database"
-echo -e  "2 - Setup New Site"
-echo -e  "3 - Setup Site with WordPress"
+echo -e  "1 - Setup New Site"
+echo -e  "2 - Setup Site with WordPress"
+echo -e  "3 - Import Database"
+echo -e  "4 - Remove Site and WordPress"
 echo -e  ""
 echo -e  "q - Exit new site script"
 echo -e  ""
@@ -15,25 +16,9 @@ echo -e  "Please enter NUMBER of choice (example: 1):"
 read choice
 case $choice in
 
+
+
 1)
-if test -r "~/slushhost.cfg" -a -f "~/slushhost.cfg"
-	then
-	source ~/slushhost.cfg
-else 
-	echo -e "Please enter the MySQL password: "
-	read rootpassword
-fi
-
-echo -e "Please enter name of the database to import into: "
-read importtodbname
-
-echo -e "Please enter directory and database file to import (exclude the .sql extension): "
-read dbfile
-
-mysql -uroot -p$rootpassword $importtodbname < $dbfile.sql
-;;
-
-2)
 echo -e "Please enter your domain: "
 read sitedomain
 
@@ -52,7 +37,9 @@ sudo chown -R nginx:nginx /var/log/*
 sudo service nginx restart
 ;;
 
-3)
+
+
+2)
 echo -e "Please enter your domain (with subdomain, if needed): "
 read sitedomain
 
@@ -115,7 +102,7 @@ cd /var/www/$sitedomain/public_html
 
 # Download, configure, and install WordPress
 wp core download
-wp core config --dbname=$dbname --dbuser=$dbuser --dbpass=$dbpassword --dbprefix="${dbprefix}_"
+wp core config --dbname=$dbname --dbuser=$dbuser --dbpass=$dbpassword --dbprefix=$dbprefix
 
 wp core install --url=$sitedomain --title=$sitetitle --admin_user=dummyadmin --admin_password=dummyadminpassword --admin_email=dummy@example.com
 
@@ -155,6 +142,91 @@ sudo chown -R nginx:nginx /var/www/*
 sudo chown -R nginx:nginx /var/log/*
 sudo service nginx reload
 ;;
+
+
+
+3)
+echo -e "Please enter the domain (with subdomain, if needed) for the database you'd like to import: "
+read sitedomain
+
+echo -e "Please enter the MySQL password: "
+read rootpassword
+
+echo -e "Please enter your database username: "
+read dbuser
+
+echo -e "Please enter directory and database file to import (include the .sql extension): "
+read dbfile
+
+sitename=${sitedomain:0:${#sitedomain}-4}
+dbname="${sitename/./}db"
+
+# Drop database
+mysqladmin -uroot -p$rootpassword drop $dbname
+
+# Recreate database, grant privileges, then import the sql file
+mysqladmin -uroot -p$rootpassword create $dbname
+mysql -uroot -p$rootpassword -e "GRANT ALL ON $dbname.* TO '$dbuser'@'localhost';"
+mysqladmin -uroot -p$rootpassword reload
+mysql -uroot -p$rootpassword $dbname < $dbfile
+
+cd /var/www/$sitedomain/public_html
+
+wp core update-db
+
+echo -e "Please enter the imported database prefix: "
+read newprefix
+
+currprefix=`sudo cat wp-config.php | grep table_prefix | cut -d \' -f 2`
+
+sudo sed -i 's/'$currprefix'/'$newprefix'/g' /var/www/$sitedomain/public_html/wp-config.php
+
+### This bit works well and uses WP-CLI
+### but it leaves the old tables in place
+#echo -e "Please enter the domain (with subdomain, if needed) for the database you'd like to import: "
+#read sitedomain
+#
+#cd /var/www/$sitedomain/public_html
+#
+#echo -e "Please enter directory and database file to import (include the .sql extension): "
+#read dbfile
+#
+#wp db import $dbfile.sql
+#wp core update-db
+#
+#echo -e "Please enter the imported database prefix: "
+#read newprefix
+#
+#currprefix=`sudo cat wp-config.php | grep table_prefix | cut -d \' -f 2`
+#
+#sudo sed -i 's/'$currprefix'/'$newprefix'/g' /var/www/$sitedomain/public_html/wp-config.php
+;;
+
+
+
+4)
+echo -e "Please enter your domain (with subdomain, if needed): "
+read sitedomain
+
+echo -e "Please enter the MySQL password: "
+read rootpassword
+
+sitename=${sitedomain:0:${#sitedomain}-4}
+dbname="${sitename/./}db"
+
+# Drop database
+mysqladmin -uroot -p$rootpassword drop $dbname
+mysqladmin -uroot -p$rootpassword reload
+
+# Remove nginx site configs
+sudo rm -rf /etc/nginx/sites/$sitename.conf
+
+# Delete site directories
+sudo rm -rf /var/www/$sitedomain
+sudo service nginx reload
+;;
+
+
 
 q)
 scriptloop="n"
