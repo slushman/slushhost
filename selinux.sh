@@ -16,7 +16,7 @@ read choice
 case $choice in
 
 1)
-sudo yum install policycoreutils setroubleshoot
+sudo yum -y install policycoreutils setroubleshoot
 sudo sed -i 's/SELINUX=disabled/SELINUX=permissive/g' /etc/selinux/config
 sudo reboot
 ;;

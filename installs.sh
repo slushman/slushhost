@@ -51,14 +51,14 @@ exit
 ;;
 
 4)
-sudo yum --enablerepo=remi,remi-php55 install php-fpm php-mysql php-gd php-common
-sudo yum --enablerepo=remi,remi-php55 install php-pear php-mbstring php-mcrypt php-xml
-sudo yum --enablerepo=remi,remi-php55 install php-pecl-apc php-devel php-mysqlnd
+sudo yum -y --enablerepo=remi,remi-php55 install php-fpm php-mysql php-gd php-common
+sudo yum -y --enablerepo=remi,remi-php55 install php-pear php-mbstring php-mcrypt php-xml
+sudo yum -y --enablerepo=remi,remi-php55 install php-pecl-apc php-devel php-mysqlnd
 ;;
 
 5)
 cd
-sudo yum install gcc gcc-c++ pcre-dev pcre-devel zlib-devel make openssl-devel
+sudo yum -y install gcc gcc-c++ pcre-dev pcre-devel zlib-devel make openssl-devel
 wget https://github.com/pagespeed/ngx_pagespeed/archive/v1.7.30.1-beta.zip
 sudo mv v1.7.30.1-beta v1.7.30.1-beta.zip
 unzip v1.7.30.1-beta.zip
@@ -119,7 +119,7 @@ sudo service iptables restart
 ;;
 
 7)
-sudo yum install fail2ban
+sudo yum -y install fail2ban
 sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
 sudo sed -i 's/port=ssh/port=25000/g' /etc/fail2ban/jail.local 
 sudo service fail2ban start
@@ -138,10 +138,10 @@ sudo ln -s ~/wp-cli/bin/wp /usr/local/bin/
 ;;
 
 9)
-sudo yum --enablerepo=remi,remi-php55 install memcached php-pecl-memcached.x86_64
+sudo yum -y --enablerepo=remi,remi-php55 install memcached php-pecl-memcached.x86_64
 sudo sed -i 's/OPTIONS=""/OPTIONS="-l 127.0.0.1"/g' /etc/sysconfig/memcached
-sudo yum --enablerepo=remi,remi-test install phpmyadmin
-sudo yum install htop
+sudo yum -y --enablerepo=remi,remi-test install phpmyadmin
+sudo yum -y install htop
 ;;
 
 10)
