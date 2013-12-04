@@ -37,19 +37,14 @@ sudo /usr/bin/mysql_secure_installation
 ;;
 
 3)
-if test -r "~/slushhost.cfg" -a -f "~/slushhost.cfg"
-	then
-	source ~/slushhost.cfg
-else 
-	echo -e "Please enter the MySQL password: "
-	read rootpassword
+echo -e "Please enter the MySQL password: "
+read rootpassword
 
-	echo -e "Please enter your database username: "
-	read dbuser
+echo -e "Please enter your database username: "
+read dbuser
 
-	echo -e "Please enter your database password: "
-	read dbpassword
-fi
+echo -e "Please enter your database password: "
+read dbpassword
 
 mysql -uroot -p$rootpassword -e "CREATE USER '$dbuser'@'localhost' IDENTIFIED BY '$dbpassword'";
 exit

@@ -49,28 +49,23 @@ read sitetitle
 echo -e "Please enter the WP database prefix: "
 read dbprefix
 
-if test -r "~/slushhost.cfg" -a -f "~/slushhost.cfg"
-	then
-	source ~/slushhost.cfg
-else 
-	echo -e "Please enter your admin username: "
-	read adminuser
+echo -e "Please enter your admin username: "
+read adminuser
 
-	echo -e "Please enter your admin email: "
-	read adminemail
+echo -e "Please enter your admin email: "
+read adminemail
 
-	echo -e "Please enter your admin password: "
-	read adminpass
+echo -e "Please enter your admin password: "
+read adminpass
 
-	echo -e "Please enter the MySQL password: "
-	read rootpassword
+echo -e "Please enter the MySQL password: "
+read rootpassword
 
-	echo -e "Please enter your database username: "
-	read dbuser
+echo -e "Please enter your database username: "
+read dbuser
 
-	echo -e "Please enter your database password: "
-	read dbpassword
-fi
+echo -e "Please enter your database password: "
+read dbpassword
 
 sitename=${sitedomain:0:${#sitedomain}-4}
 
