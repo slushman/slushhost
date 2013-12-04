@@ -14,9 +14,8 @@ echo -e  "5 - Install nginx & PageSpeed"
 echo -e  "6 - Config iptables"
 echo -e  "7 - Install and Config Fail2Ban"
 echo -e  "8 - WP-CLI"
-echo -e  "9 - memcache"
-echo -e  "10 - phpMyAdmin"
-echo -e  "11 - Config, Harden, and Start Server"
+echo -e  "9 - memcache, phpMyAdmin, and htop"
+echo -e  "10 - Config, Harden, and Start Server"
 echo -e  ""
 echo -e  "q - Exit Installers"
 echo -e  ""
@@ -146,13 +145,11 @@ sudo ln -s ~/wp-cli/bin/wp /usr/local/bin/
 9)
 sudo yum --enablerepo=remi,remi-php55 install memcached php-pecl-memcached.x86_64
 sudo sed -i 's/OPTIONS=""/OPTIONS="-l 127.0.0.1"/g' /etc/sysconfig/memcached
+sudo yum --enablerepo=remi,remi-test install phpmyadmin
+sudo yum install htop
 ;;
 
 10)
-sudo yum --enablerepo=remi,remi-test install phpmyadmin
-;;
-
-11)
 sudo mkdir -p /var/www/
 sudo chmod 755 /var/www
 sudo mkdir -p /var/ngx_pagespeed_cache/
