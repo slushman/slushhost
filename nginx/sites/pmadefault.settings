@@ -5,8 +5,8 @@ server
         index           index.php index.html index.htm;
 
         # Brings in security, defaults, etc
-        include                 sites/pma/*.conf;
+        include                 /etc/nginx/sites/pma/*.conf;
 
         #include cache file
-        include                 sites/configs/cache.conf;
+        include                 /etc/nginx/sites/configs/cache.conf;
 }
