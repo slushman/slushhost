@@ -37,23 +37,16 @@ sudo /usr/bin/mysql_secure_installation
 ;;
 
 3)
-echo -e "Please enter the MySQL password: "
-read rootpassword
-
-echo -e "Please enter your database username: "
-read dbuser
-
-echo -e "Please enter your database password: "
-read dbpassword
+read -p "Please enter the MySQL password: " rootpassword
+read -p "Please enter your database username: " dbuser
+read -p "Please enter your database password: " dbpassword
 
 mysql -uroot -p$rootpassword -e "CREATE USER '$dbuser'@'localhost' IDENTIFIED BY '$dbpassword'";
 exit
 ;;
 
 4)
-sudo yum -y --enablerepo=remi,remi-php55 install php-fpm php-mysql php-gd php-common
-sudo yum -y --enablerepo=remi,remi-php55 install php-pear php-mbstring php-mcrypt php-xml
-sudo yum -y --enablerepo=remi,remi-php55 install php-pecl-apc php-devel php-mysqlnd
+sudo yum -y --enablerepo=remi,remi-php55 install php-fpm php-mysql php-gd php-common php-pear php-mbstring php-mcrypt php-xml php-pecl-apc php-devel php-mysqlnd
 ;;
 
 5)

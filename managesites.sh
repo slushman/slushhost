@@ -4,19 +4,26 @@
 # 	The site domain name
 function calc_sitename()
 {
-	return ${1:0:${#1}-4}
+	sitename=${1:0:${#1}-4}
+}
+
+# Requires two parameters:
+# 	The site name
+function calc_dbname()
+{
+        dbname="${1}db"
 }
 
 # Requires three parameters:
 # 	The MySQL root password
 # 	The database name
-# 	The database username
+# 	The database user name
 function createdb()
 {
 	# Create database
-	mysqladmin -uroot -p$rootpassword create $dbname
-	mysql -uroot -p$rootpassword -e "GRANT ALL ON $dbname.* TO '$dbuser'@'localhost';"
-	mysqladmin -uroot -p$rootpassword reload
+	mysqladmin -uroot -p$1 create $2
+	mysql -uroot -p$1 -e "GRANT ALL ON $2.* TO '$3'@'localhost';"
+	mysqladmin -uroot -p$1 reload
 }
 
 # Requires three parameters:
@@ -26,8 +33,8 @@ function createdb()
 function nginx_configs()
 {
 	# Create nginx site configs
-	sudo cp /etc/nginx/sites/$settingfile.settings /etc/nginx/sites/$sitename.conf
-	sudo sed -i 's/replacewithsitedomain/'$sitedomain'/g' /etc/nginx/sites/$sitename.conf
+	sudo cp /etc/nginx/sites/$1.settings /etc/nginx/sites/$3.conf
+	sudo sed -i 's/replacewithsitedomain/'$2'/g' /etc/nginx/sites/$3.conf
 }
 
 function wrapup_nginx()
@@ -46,12 +53,12 @@ echo -e  ""
 echo -e  "New Sites:"
 echo -e  ""
 echo -e  "1 - Setup Site with WordPress"
-echo -e  "1 - Setup New Empty Site"
-echo -e  "2 - Add New Database"
-echo -e  "3 - Import Database"
-echo -e  "4 - Export Database"
-echo -e  "5 - Move Site from Another Server"
-echo -e  "6 - Remove Site and WordPress"
+echo -e  "2 - Setup New Empty Site"
+echo -e  "3 - Add New Database"
+echo -e  "4 - Import Database"
+echo -e  "5 - Export Database"
+echo -e  "6 - Move Site from Another Server"
+echo -e  "7 - Remove Site and WordPress"
 echo -e  ""
 echo -e  "q - Exit new site script"
 echo -e  ""
@@ -62,58 +69,36 @@ case $choice in
 
 
 1) # Setup Site with WordPress
-echo -e "Please enter your domain (with subdomain, if needed): "
-read sitedomain
+read -p "Please enter your domain (with subdomain, if needed): " sitedomain
+read -p "Please enter your site title: " sitetitle
+read -p "Please enter the WP database prefix: " dbprefix
+read -p "Please enter your admin username: " adminuser
+read -p "Please enter your admin email: " adminemail
+read -p "Please enter your admin password: " adminpass
+read -p "Please enter the MySQL password: " rootpassword
+read -p "Please enter your database username: " dbuser
+read -p "Please enter the name of the new database: " dbname
 
-echo -e "Please enter your site title: "
-read sitetitle
-
-echo -e "Please enter the WP database prefix: "
-read dbprefix
-
-echo -e "Please enter your admin username: "
-read adminuser
-
-echo -e "Please enter your admin email: "
-read adminemail
-
-echo -e "Please enter your admin password: "
-read adminpass
-
-echo -e "Please enter the MySQL password: "
-read rootpassword
-
-echo -e "Please enter your database username: "
-read dbuser
-
-echo -e "Please enter your database password: "
-read dbpassword
-
-sitename=${sitedomain:0:${#sitedomain}-4}
+calc_sitename $sitedomain
 
 read -p "Is this site's domain a subdomain? (yes or no)" subchoice 
 if [ "$subchoice" = "yes" ]; then
 	settingfile=subdomain
-	dbname="${sitename/./}db"
 else
 	settingfile=defaultsite
-	dbname="${sitename}db"
 fi
 
 # Create database
-mysqladmin -uroot -p$rootpassword create $dbname
-mysql -uroot -p$rootpassword -e "GRANT ALL ON $dbname.* TO '$dbuser'@'localhost';"
-mysqladmin -uroot -p$rootpassword reload
+createdb $rootpassword $dbname $dbuser
 
 test -d "/var/lib/mysql/$dbname" && echo "Database created successfully" || echo "Database was not created"
 
 # Create nginx site configs
-sudo cp /etc/nginx/sites/$settingfile.settings /etc/nginx/sites/$sitename.conf
-sudo sed -i 's/replacewithsitedomain/'$sitedomain'/g' /etc/nginx/sites/$sitename.conf
+nginx_configs $settingfile $sitedomain $sitename
 
 # Create site directories
 sudo mkdir -p /var/www/$sitedomain/public_html
-sudo ln -s /usr/share/phpmyadmin/ /var/www/$sitedomain/public_html
+#sudo ln -s /usr/share/phpmyadmin/ /var/www/$sitedomain/public_html
 sudo chown -R slushman:slushman /var/www/*
 cd /var/www/$sitedomain/public_html
 
@@ -155,139 +140,126 @@ wp plugin install jetpack --activate
 sudo rm -rf /var/www/$sitedomain/public_html/wp-config-sample.php
 
 # Set permissions and restart nginx
-sudo chown -R nginx:nginx /var/www/*
-sudo chown -R nginx:nginx /var/log/*
-sudo service nginx reload
+wrapup_nginx
 ;;
 
 
 
-1) # Setup New Empty Site
-echo -e "Please enter your domain: "
-read sitedomain
+2) # Setup New Empty Site
+read -p "Please enter your domain: " sitedomain
 
-sitename=${sitedomain:0:${#sitedomain}-4}
+calc_sitename $sitedomain
 
-sudo cp /etc/nginx/sites/defaultsite.settings /etc/nginx/sites/$sitename.conf
-sudo sed -i 's/replacewithsitedomain/'$sitedomain'/g' /etc/nginx/sites/$sitename.conf
+nginx_configs defaultsite $sitedomain $sitename
 
 sudo mkdir -p /var/www/$sitedomain/public_html
 #sudo ln -s /usr/share/phpMyAdmin/ /var/www/$sitedomain/public_html
-sudo chown -R nginx:nginx /var/www/*
-sudo chown -R nginx:nginx /var/log/*
-sudo service nginx reload
+wrapup_nginx
 ;;
 
 
 
-2) # Add New Database
-echo -e "Please enter the MySQL password: "
-read rootpassword
+3) # Add New Database
+read -p "Please enter the MySQL password: " rootpassword
+read -p "Please enter your database username: " dbuser
+read -p "Please enter the name of the new database: " dbname
 
-echo -e "Please enter your database username: "
-read dbuser
-
-echo -e "Please enter your database password: "
-read dbpassword
-
-echo -e "Please enter the name of the new database: "
-read dbname
-
-# Create database
-mysqladmin -uroot -p$rootpassword create $dbname
-mysql -uroot -p$rootpassword -e "GRANT ALL ON $dbname.* TO '$dbuser'@'localhost';"
-mysqladmin -uroot -p$rootpassword reload
+createdb $rootpassword $dbname $dbuser
 
 test -d "/var/lib/mysql/$dbname" && echo "Database created successfully" || echo "Database was not created"
 ;;
 
 
-3) # Import Database
-echo -e "Please enter the domain (with subdomain, if needed) for the database you'd like to import: "
-read sitedomain
+4) # Import Database
+read -p "Please enter the domain (with subdomain, if needed) for the database you'd like to import: " sitedomain
+read -p "Please enter the MySQL password: " rootpassword
+read -p "Please enter your database username: " dbuser
+read -p "Please enter the name of the new database: " dbname
+read -p "Please enter your database password: " dbpassword
+read -p "Please enter directory and database file to import (include the .sql extension): " dbfile
 
-echo -e "Please enter the MySQL password: "
-read rootpassword
-
-echo -e "Please enter your database username: "
-read dbuser
-
-echo -e "Please enter directory and database file to import (include the .sql extension): "
-read dbfile
-
-sitename=${sitedomain:0:${#sitedomain}-4}
-dbname="${sitename/./}db"
+calc_sitename $sitedomain
+calc_dbname $sitename
 
 # Drop database
 mysqladmin -uroot -p$rootpassword drop $dbname
 
 # Recreate database, grant privileges, then import the sql file
-mysqladmin -uroot -p$rootpassword create $dbname
-mysql -uroot -p$rootpassword -e "GRANT ALL ON $dbname.* TO '$dbuser'@'localhost';"
-mysqladmin -uroot -p$rootpassword reload
+createdb $rootpassword $dbname $dbuser
+
 mysql -uroot -p$rootpassword $dbname < $dbfile
 
 cd /var/www/$sitedomain/public_html
 
 wp core update-db
 
-echo -e "Please enter the imported database prefix: "
-read newprefix
+read -p "Please enter the imported database prefix: " newprefix
 
+wpdbname=`cat wp-config.php | grep DB_NAME | cut -d \' -f 4`
+wpdbuser=`cat wp-config.php | grep DB_USER | cut -d \' -f 4`
+wpdbpass=`cat wp-config.php | grep DB_PASSWORD | cut -d \' -f 4`
 currprefix=`sudo cat wp-config.php | grep table_prefix | cut -d \' -f 2`
 
+sudo sed -i 's/'$wpdbname'/'$dbname'/g' /var/www/$sitedomain/public_html/wp-config.php
+sudo sed -i 's/'$wpdbuser'/'$dbuser'/g' /var/www/$sitedomain/public_html/wp-config.php
+sudo sed -i 's/'$wpdbpass'/'$dbpassword'/g' /var/www/$sitedomain/public_html/wp-config.php
 sudo sed -i 's/'$currprefix'/'$newprefix'/g' /var/www/$sitedomain/public_html/wp-config.php
+
+cd
+sudo ssh-keygen -f wp_rsa -N ''
+sudo chown $USER:nginx wp_rsa
+sudo chown $USER:nginx wp_rsa.pub
+sudo chmod 0640 wp_rsa
+sudo chmod 0640 wp_rsa.pub
+sudo sed -i '1s/^/from="127.0.0.1" /' wp_rsa.pub
+cat /home/$USER/wp_rsa.pub >> /home/$USER/.ssh/authorized_keys
+
+echo "define('FTP_PUBKEY', '/home/slushman/wp_rsa.pub');" >> /var/www/$sitedomain/public_html/wp-config.php
+echo "define('FTP_PRIKEY', '/home/slushman/wp_rsa');" >> /var/www/$sitedomain/public_html/wp-config.php
+echo "define('FTP_USER', 'slushman');" >> /var/www/$sitedomain/public_html/wp-config.php
+echo "define('FTP_PASS', '');" >> /var/www/$sitedomain/public_html/wp-config.php
+echo "define('FTP_HOST', '127.0.0.1:25000');" >> /var/www/$sitedomain/public_html/wp-config.php
 ;;
 
 
 
-4) # Export Database
-echo -e "Please enter the domain (with subdomain, if needed) for the database you'd like to export: "
-read sitedomain
+5) # Export Database
+read -p "Please enter the domain (with subdomain, if needed) for the database you'd like to export: " sitedomain
 
 cd /var/www/$sitedomain/public_html
 
-sitename=${sitedomain:0:${#sitedomain}-4}
-dbname="${sitename/./}db"
+calc_sitename $sitedomain
+calc_dbname $sitename
 
 wp db export $dbname
 ;;
 
 
 
+6) # Import site from another server
+read -p "Please enter the SSH username for the old server: " olduser
+read -p "Please enter the IP address of the old server: " oldip
+read -p "Please enter the path (from root) of the site: " oldpath
+read -p "Please enter the domain for the site: " sitedomain
 
-5) # Import site from another server
-echo -e "Please enter the SSH username for the old server: "
-read olduser
-
-echo -e "Please enter the IP address of the old server: "
-read oldip
-
-echo -e "Please enter the path (from root) of the site: "
-read oldpath
-
-echo -e "Please enter the domain for the site: "
-read sitedomain
-
-sudo rsync -av -e ssh --progress $olduser@$oldip:$oldpath /var/www/$sitedomain/public_html 
-sudo chown -R nginx:nginx /var/www/*
+sudo rsync -av -e ssh --progress $olduser@$oldip:$oldpath /var/www/$sitedomain/public_html
 sudo find /var/www/$sitedomain/public_html -type d -exec chmod 755 {} \;
 sudo find /var/www/$sitedomain/public_html -type f -exec chmod 644 {} \;
+
+wrapup_nginx
+
 cd /var/www/$sitedomain/public_html
 sudo ls -l
 ;;
 
 
 
-6) # Remove Site and WordPress
-echo -e "Please enter your domain (with subdomain, if needed): "
-read sitedomain
+7) # Remove Site and WordPress
+read -p "Please enter the domain (with subdomain, if needed) for the database you'd like to import: " sitedomain
+read -p "Please enter the MySQL password: " rootpassword
 
-echo -e "Please enter the MySQL password: "
-read rootpassword
-
-sitename=${sitedomain:0:${#sitedomain}-4}
-dbname="${sitename/./}db"
+calc_sitename $sitedomain
+calc_dbname $sitename
 
 # Drop database
 mysqladmin -uroot -p$rootpassword drop $dbname
