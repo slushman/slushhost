@@ -98,8 +98,8 @@ function wp_update_config()
 	sudo ssh-keygen -f wp_rsa -N ''
 	sudo chown $USER:nginx wp_rsa
 	sudo chown $USER:nginx wp_rsa.pub
-	sudo chmod 0640 wp_rsa
-	sudo chmod 0640 wp_rsa.pub
+	sudo chmod 0700 wp_rsa
+	sudo chmod 0700 wp_rsa.pub
 	sudo sed -i '1s/^/from="127.0.0.1" /' wp_rsa.pub
 	cat /home/$USER/wp_rsa.pub >> /home/$USER/.ssh/authorized_keys
 
