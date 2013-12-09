@@ -26,18 +26,18 @@ case $choice in
 1)
 sudo rpm -Uvh http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
 sudo rpm -Uvh http://rpms.famillecollet.com/enterprise/remi-release-6.rpm
-sudo yum update
+sudo yum -y update
 ;;
 
 2)
 sudo mv ~/slushhost/MariaDB.repo /etc/yum.repos.d/MariaDB.repo
 sudo yum -y install MariaDB-server MariaDB-client MariaDB-compat MariaDB-devel MariaDB-shared MariaDB-test
-sudo service mysql start
-sudo /usr/bin/mysql_secure_installation
-;;
 
-3)
-read -p "Please enter the MySQL password: " rootpassword
+read -p "Please enter the new MySQL root password: " rootpassword
+
+'/usr/bin/mysqladmin' -uroot -p$rootpassword
+sudo service mysql start
+
 read -p "Please enter your database username: " dbuser
 read -p "Please enter your database password: " dbpassword
 
