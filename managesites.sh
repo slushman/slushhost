@@ -57,6 +57,11 @@ function make_dirs()
 	#sudo ln -s /usr/share/phpMyAdmin/ /var/www/$1/public_html
 }
 
+# Creates the nginx config files
+# 
+# Usage:
+# nginx_configs $settingfile $sitedomain $sitename
+# 
 # Requires three parameters:
 # 	The settings file name
 # 	The site domain name
@@ -99,7 +104,7 @@ function wp_update_config()
 	cat /home/$USER/wp_rsa.pub >> /home/$USER/.ssh/authorized_keys
 
 	# Path to the wp-config.php file for this domain
-	local wp_config_path=/var/www/$1/public_html/wp-config.php
+	wp_config_path=/var/www/$1/public_html/wp-config.php
 
 	echo "define('FTP_PUBKEY', '/home/'$USER'/wp_rsa.pub');" >> $wp_config_path
 	echo "define('FTP_PRIKEY', '/home/'$USER'/wp_rsa');" >> $wp_config_path
@@ -111,7 +116,7 @@ function wp_update_config()
 # Imports site files and database from remote server
 # 
 # Usage:
-# remote_db_import $rootpassword $dbname $dbuser $olduser $oldip $olddbroot $olddbname
+# remote_db_import $rootpassword $dbname $dbuser $olduser $oldip $olddbuser $olddbroot $olddbname
 # 
 # Requires parameters:
 # 	$1: MySQL root password
@@ -120,14 +125,15 @@ function wp_update_config()
 # 	$4: Remote server user name
 # 	$5: Remote server IP address
 # 	$6: Remote MySQL root password
-# 	$7: Remote database name
+# 	$7: Remote MySQL user name
+# 	$8: Remote database name
 function remote_db_import()
 {
 	# createdb $rootpassword $dbname $dbuser
 	createdb $1 $2 $3
 
 	# ssh $olduser@$oldip "mysqldump -uroot -p$olddbroot $olddbname" | mysql -uroot -p$rootpassword $dbname
-	ssh $4@$5 "mysqldump -uroot -p$6 $7 | gzip" | gzip -d | mysql -uroot -p$1 $2
+	ssh $4@$5 "mysqldump -u$7 -p$6 $8 | gzip" | gzip -d | mysql -uroot -p$1 $2
 
 }
 
@@ -166,7 +172,7 @@ read -p "Please enter the MySQL password: " rootpassword
 read -p "Please enter your database username: " dbuser
 read -p "Please enter the name of the new database: " dbname
 
-local wp_dir_path=/var/www/$sitedomain/public_html
+wp_dir_path=/var/www/$sitedomain/public_html
 
 calc_sitename $sitedomain
 
@@ -267,7 +273,7 @@ read -p "Please enter the name of the new database: " dbname
 read -p "Please enter your database password: " dbpassword
 read -p "Please enter directory and database file to import (include the .sql extension): " dbfile
 
-local wp_dir_path=/var/www/$sitedomain/public_html
+wp_dir_path=/var/www/$sitedomain/public_html
 
 calc_sitename $sitedomain
 calc_dbname $sitename
@@ -292,7 +298,7 @@ wpdbpass=`cat wp-config.php | grep DB_PASSWORD | cut -d \' -f 4`
 currprefix=`sudo cat wp-config.php | grep table_prefix | cut -d \' -f 2`
 
 # Path to the wp-config.php file for this domain
-local wp_config_path=$wp_dir_path/wp-config.php
+wp_config_path=$wp_dir_path/wp-config.php
 
 sudo sed -i 's/'$wpdbname'/'$dbname'/g' $wp_dir_path
 sudo sed -i 's/'$wpdbuser'/'$dbuser'/g' $wp_dir_path
@@ -324,7 +330,18 @@ read -p "Please enter the IP address of the old server: " oldip
 read -p "Please enter the path (from root) of the site: " oldpath
 read -p "Please enter the domain for the site: " sitedomain
 
-local wp_dir_path=/var/www/$sitedomain/public_html
+calc_sitename $sitedomain
+
+read -p "Is this site's domain a subdomain? (yes or no)" subchoice 
+if [ "$subchoice" = "yes" ]; then
+	settingfile=subdomain
+else
+	settingfile=defaultsite
+fi
+
+nginx_configs $settingfile $sitedomain $sitename
+
+wp_dir_path=/var/www/$sitedomain/public_html
 
 sudo rsync -av -e ssh --progress $olduser@$oldip:$oldpath $wp_dir_path
 sudo find $wp_dir_path -type d -exec chmod 755 {} \;
@@ -332,13 +349,14 @@ sudo find $wp_dir_path -type f -exec chmod 644 {} \;
 
 wrapup_nginx
 
-read -p "Please enter the MySQL password: " rootpassword
-read -p "Please enter your database username: " dbuser
+read -p "Please enter the current MySQL password: " rootpassword
+read -p "Please enter your current database username: " dbuser
 read -p "Please enter the name of the new database: " dbname
-read -p "Please enter the MySQL root username for the old server: " olddbroot
-read -p "Please enter the IP address of the old server: " olddbname
+read -p "Please enter the MySQL root username for the old server: " olddbuser
+read -p "Please enter the MySQL root password for the old server: " olddbroot
+read -p "Please enter the old database name: " olddbname
 
-remote_db_import $rootpassword $dbname $dbuser $olduser $oldip $olddbroot $olddbname
+remote_db_import $rootpassword $dbname $dbuser $olduser $oldip $olddbuser $olddbroot $olddbname
 
 cd $wp_dir_path
 sudo ls -l
@@ -347,7 +365,7 @@ sudo ls -l
 
 
 7) # Remove Site and WordPress
-read -p "Please enter the domain (with subdomain, if needed) for the database you'd like to import: " sitedomain
+read -p "Please enter the domain (with subdomain, if needed) for the database you'd like to remove: " sitedomain
 read -p "Please enter the MySQL password: " rootpassword
 
 calc_sitename $sitedomain
