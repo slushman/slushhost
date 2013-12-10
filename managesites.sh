@@ -21,13 +21,14 @@ function calc_sitename()
 # 	The site name
 function calc_dbname()
 {
-        dbname="${1}db"
+	calc_sitename $1
+	dbname="${sitename}db"
 }
 
 # Creates a new database
 # 
 # Usage:
-# createdb $rootpassword $dbname $dbuser
+# createdb $mysqlpassword $dbname $dbuser
 # 
 # Requires three parameters:
 # 	The MySQL root password
@@ -47,30 +48,37 @@ function createdb()
 # phpMyAdmin link is commented out for now until it works
 # 
 # Usage:
-# make_dirs $sitedomain
+# make_dirs $wp_dir_path
 # 
 # Requires one parameter:
-# 	The site domain
+# 	The directory you want created
 function make_dirs()
 {
-	sudo mkdir -p /var/www/$1/public_html
-	#sudo ln -s /usr/share/phpMyAdmin/ /var/www/$1/public_html
+	sudo mkdir -p $1
+	#sudo ln -s /usr/share/phpMyAdmin/ $1
 }
 
 # Creates the nginx config files
 # 
 # Usage:
-# nginx_configs $settingfile $sitedomain $sitename
+# nginx_configs $sitedomain
 # 
 # Requires three parameters:
-# 	The settings file name
 # 	The site domain name
-# 	The site name
 function nginx_configs()
 {
+	read -p "Is this site's domain a subdomain? (yes or no)" subchoice 
+	if [ "$subchoice" = "yes" ]; then
+		settingfile=subdomain
+	else
+		settingfile=defaultsite
+	fi
+
+	calc_sitename $1
+
 	# Create nginx site configs
-	sudo cp /etc/nginx/sites/$1.settings /etc/nginx/sites/$3.conf
-	sudo sed -i 's/replacewithsitedomain/'$2'/g' /etc/nginx/sites/$3.conf
+	sudo cp /etc/nginx/sites/$settingfile.settings /etc/nginx/sites/$sitename.conf
+	sudo sed -i 's/replacewithsitedomain/'$1'/g' /etc/nginx/sites/$sitename.conf
 }
 
 # Sets permissions on the nginx site and log directories and reloads nginx config
@@ -84,16 +92,31 @@ function wrapup_nginx()
 	sudo service nginx reload
 }
 
-# Creates a new SSH key for WordPress updates and adds lines to wp-config.php
-# so WP can updates itself, plugins, and themes without asking for FTP creds.
-# 
+#
 # Usage:
-# wp_update_config $sitedomain
-# 
-# Requires one parameter:
-# 	The site domain
+# wp_update_config $wp_dir_path $dbname $dbuser $dbpassword $newprefix
+#
+# Requires parameters:
+# 	$1: The path to the WP site
+# 	$2: The new database name
+# 	$3: The new database user name
+# 	$4: The new database password
+# 	$5: The new database prefix
 function wp_update_config()
 {
+	# Path to the wp-config.php file for this domain
+	wp_config_file=$1/wp-config.php
+
+	wpdbname=`cat $wp_config_file | grep DB_NAME | cut -d \' -f 4`
+	wpdbuser=`cat $wp_config_file | grep DB_USER | cut -d \' -f 4`
+	wpdbpass=`cat $wp_config_file | grep DB_PASSWORD | cut -d \' -f 4`
+	currprefix=`cat $wp_config_file | grep table_prefix | cut -d \' -f 2`
+
+	sudo sed -i 's/'$wpdbname'/'$2'/g' $wp_config_file
+	sudo sed -i 's/'$wpdbuser'/'$3'/g' $wp_config_file
+	sudo sed -i 's/'$wpdbpass'/'$4'/g' $wp_config_file
+	sudo sed -i 's/'$currprefix'/'$5'/g' $wp_config_file
+
 	cd
 	sudo ssh-keygen -f wp_rsa -N ''
 	sudo chown $USER:nginx wp_rsa
@@ -103,38 +126,32 @@ function wp_update_config()
 	sudo sed -i '1s/^/from="127.0.0.1" /' wp_rsa.pub
 	cat /home/$USER/wp_rsa.pub >> /home/$USER/.ssh/authorized_keys
 
-	# Path to the wp-config.php file for this domain
-	wp_config_path=/var/www/$1/public_html/wp-config.php
+	echo "define('FTP_PUBKEY', '/home/'$USER'/wp_rsa.pub');" >> $wp_config_file
+	echo "define('FTP_PRIKEY', '/home/'$USER'/wp_rsa');" >> $wp_config_file
+	echo "define('FTP_USER', '$USER');" >> $wp_config_file
+	echo "define('FTP_PASS', '');" >> $wp_config_file
+	echo "define('FTP_HOST', '127.0.0.1:25000');" >> $wp_config_file
 
-	echo "define('FTP_PUBKEY', '/home/'$USER'/wp_rsa.pub');" >> $wp_config_path
-	echo "define('FTP_PRIKEY', '/home/'$USER'/wp_rsa');" >> $wp_config_path
-	echo "define('FTP_USER', '$USER');" >> $wp_config_path
-	echo "define('FTP_PASS', '');" >> $wp_config_path
-	echo "define('FTP_HOST', '127.0.0.1:25000');" >> $wp_config_path
+	cd $1
+
+	wp core update-db
 }
 
 # Imports site files and database from remote server
 # 
 # Usage:
-# remote_db_import $rootpassword $dbname $dbuser $olduser $oldip $olddbuser $olddbroot $olddbname
+# remote_db_import $mysqlpassword $dbname $olduser $oldip $olddbname
 # 
 # Requires parameters:
 # 	$1: MySQL root password
 # 	$2: New database name
-# 	$3: New database username
-# 	$4: Remote server user name
-# 	$5: Remote server IP address
-# 	$6: Remote MySQL root password
-# 	$7: Remote MySQL user name
-# 	$8: Remote database name
+# 	$3: Remote server user name
+# 	$4: Remote server IP address
+# 	$5: Remote database name
 function remote_db_import()
 {
-	# createdb $rootpassword $dbname $dbuser
-	createdb $1 $2 $3
-
-	# ssh $olduser@$oldip "mysqldump -uroot -p$olddbroot $olddbname" | mysql -uroot -p$rootpassword $dbname
-	ssh $4@$5 "mysqldump -u$7 -p$6 $8 | gzip" | gzip -d | mysql -uroot -p$1 $2
-
+	# ssh $olduser@$oldip "mysqldump $olddbname" | mysql -uroot -p$mysqlpassword $dbname
+	ssh $3@$4 "mysqldump $5 | gzip" | gzip -d | mysql -uroot -p$1 $2
 }
 
 
@@ -148,9 +165,9 @@ echo -e  ""
 echo -e  "1 - Setup Site with WordPress"
 echo -e  "2 - Setup New Empty Site"
 echo -e  "3 - Add New Database"
-echo -e  "4 - Import WordPress Database"
+echo -e  "4 - Import Database"
 echo -e  "5 - Export Database"
-echo -e  "6 - Move Site from Another Server"
+echo -e  "6 - Move Site and Database from Another Server"
 echo -e  "7 - Remove Site and WordPress"
 echo -e  ""
 echo -e  "q - Exit new site script"
@@ -162,44 +179,36 @@ case $choice in
 
 
 1) # Setup Site with WordPress
-read -p "Please enter your domain (with subdomain, if needed): " sitedomain
-read -p "Please enter your site title: " sitetitle
-read -p "Please enter the WP database prefix: " dbprefix
-read -p "Please enter your admin username: " adminuser
-read -p "Please enter your admin email: " adminemail
-read -p "Please enter your admin password: " adminpass
-read -p "Please enter the MySQL password: " rootpassword
-read -p "Please enter your database username: " dbuser
-read -p "Please enter the name of the new database: " dbname
+read -p "Please enter the full domain for the site: " sitedomain
+read -p "Please enter the site title: " sitetitle
+read -p "Please enter the admin username: " adminuser
+read -p "Please enter the admin email: " adminemail
+read -p "Please enter the admin password: " adminpass
+read -p "Please enter the MySQL password: " mysqlpassword
+read -p "Please enter the new database user name: " dbuser
+read -p "Please enter the new database name: " dbname
+read -p "Please enter the new database prefix: " dbprefix
 
 wp_dir_path=/var/www/$sitedomain/public_html
 
-calc_sitename $sitedomain
-
-read -p "Is this site's domain a subdomain? (yes or no)" subchoice 
-if [ "$subchoice" = "yes" ]; then
-	settingfile=subdomain
-else
-	settingfile=defaultsite
-fi
-
 # Create database
-createdb $rootpassword $dbname $dbuser
+createdb $mysqlpassword $dbname $dbuser
 
 # Create nginx site configs
-nginx_configs $settingfile $sitedomain $sitename
+nginx_configs $sitedomain
 
 # Create site directories
 make_dirs $wp_dir_path
 
 sudo chown -R slushman:slushman /var/www/*
+
 cd $wp_dir_path
 
 # Download, configure, and install WordPress
 wp core download
 wp core config --dbname=$dbname --dbuser=$dbuser --dbpass=$dbpassword --dbprefix=$dbprefix
 
-wp core install --url=$sitedomain --title=$sitetitle --admin_user=dummyadmin --admin_password=dummyadminpassword --admin_email=dummy@example.com
+wp core install --url=$sitedomain --title=${sitetitle} --admin_user=dummyadmin --admin_password=dummyadminpassword --admin_email=dummy@example.com
 
 if $(wp core is-installed); then
     echo "WordPress is installed!"
@@ -241,11 +250,11 @@ wrapup_nginx
 2) # Setup New Empty Site
 read -p "Please enter your domain: " sitedomain
 
-calc_sitename $sitedomain
+nginx_configs $sitedomain
 
-nginx_configs defaultsite $sitedomain $sitename
+wp_dir_path=/var/www/$sitedomain/public_html
 
-make_dirs $sitedomain
+make_dirs $wp_dir_path
 
 wrapup_nginx
 
@@ -256,92 +265,76 @@ wp_update_config $sitedomain
 
 
 3) # Add New Database
-read -p "Please enter the MySQL password: " rootpassword
+read -p "Please enter the MySQL password: " mysqlpassword
 read -p "Please enter your database username: " dbuser
 read -p "Please enter the name of the new database: " dbname
 
-createdb $rootpassword $dbname $dbuser
+createdb $mysqlpassword $dbname $dbuser
 ;;
 
 
 
-4) # Import WordPress Database
-read -p "Please enter the domain (with subdomain, if needed) for the database you'd like to import: " sitedomain
-read -p "Please enter the MySQL password: " rootpassword
-read -p "Please enter your database username: " dbuser
-read -p "Please enter the name of the new database: " dbname
-read -p "Please enter your database password: " dbpassword
-read -p "Please enter directory and database file to import (include the .sql extension): " dbfile
+4) # Import Database
+read -p "Please enter the full domain for the site: " sitedomain
+read -p "Please enter the MySQL password: " mysqlpassword
+read -p "Please enter the new database user name: " dbuser
+read -p "Please enter the new database user password: " dbpassword
 
-wp_dir_path=/var/www/$sitedomain/public_html
+# Calculate database name
+calc_dbname $sitedomain
 
-calc_sitename $sitedomain
-calc_dbname $sitename
+read -p "Is this database for WordPress?" wpdb 
+if [ "$wpdb" = "yes" ]; then
+	read -p "Please enter the new database prefix: " newprefix
+
+	wp_update_config /var/www/$sitedomain/public_html $dbname $dbuser $dbpassword $newprefix
+fi
 
 # Drop database
-mysqladmin -uroot -p$rootpassword drop $dbname
+mysqladmin -uroot -p$mysqlpassword drop $dbname
 
 # Recreate database, grant privileges, then import the sql file
-createdb $rootpassword $dbname $dbuser
+createdb $mysqlpassword $dbname $dbuser
 
-mysql -uroot -p$rootpassword $dbname < $dbfile
+read -p "Is this database located on another server?" remotedb 
+if [ "$remotedb" = "yes" ]; then
+	read -p "Please enter the SSH username for the old server: " oldssh
+	read -p "Please enter the IP address of the old server: " oldip
+	read -p "Please enter the old database name: " olddbname
 
-cd $wp_dir_path
+	remote_db_import $mysqlpassword $dbname $oldssh $oldip $olddbname
+else
+	read -p "Please enter the directory and database file to import: " dbfile
 
-wp core update-db
-
-read -p "Please enter the imported database prefix: " newprefix
-
-wpdbname=`cat wp-config.php | grep DB_NAME | cut -d \' -f 4`
-wpdbuser=`cat wp-config.php | grep DB_USER | cut -d \' -f 4`
-wpdbpass=`cat wp-config.php | grep DB_PASSWORD | cut -d \' -f 4`
-currprefix=`sudo cat wp-config.php | grep table_prefix | cut -d \' -f 2`
-
-# Path to the wp-config.php file for this domain
-wp_config_path=$wp_dir_path/wp-config.php
-
-sudo sed -i 's/'$wpdbname'/'$dbname'/g' $wp_dir_path
-sudo sed -i 's/'$wpdbuser'/'$dbuser'/g' $wp_dir_path
-sudo sed -i 's/'$wpdbpass'/'$dbpassword'/g' $wp_dir_path
-sudo sed -i 's/'$currprefix'/'$newprefix'/g' $wp_dir_path
-
-# Add SSH key and wp-config.php lines for keeping WP updated
-wp_update_config $sitedomain
+	mysql -uroot -p$mysqlpassword $dbname < $dbfile
+fi
 ;;
 
 
 
 5) # Export Database
-read -p "Please enter the domain (with subdomain, if needed) for the database you'd like to export: " sitedomain
+read -p "Please enter the full domain for the site database you would like to export: " sitedomain
 
 cd /var/www/$sitedomain/public_html
 
-calc_sitename $sitedomain
-calc_dbname $sitename
+calc_dbname $sitedomain
 
 wp db export $dbname
 ;;
 
 
 
-6) # Import site from another server
-read -p "Please enter the SSH username for the old server: " olduser
+6) # Import site and database from another server
+read -p "Please enter the full domain for the site: " sitedomain
+read -p "Please enter the SSH username for the old server: " oldssh
 read -p "Please enter the IP address of the old server: " oldip
 read -p "Please enter the path (from root) of the site: " oldpath
-read -p "Please enter the domain for the site: " sitedomain
-
-calc_sitename $sitedomain
-
-read -p "Is this site's domain a subdomain? (yes or no)" subchoice 
-if [ "$subchoice" = "yes" ]; then
-	settingfile=subdomain
-else
-	settingfile=defaultsite
-fi
-
-nginx_configs $settingfile $sitedomain $sitename
 
 wp_dir_path=/var/www/$sitedomain/public_html
+
+nginx_configs $sitedomain
+
+make_dirs $wp_dir_path
 
 sudo rsync -av -e ssh --progress $olduser@$oldip:$oldpath $wp_dir_path
 sudo find $wp_dir_path -type d -exec chmod 755 {} \;
@@ -349,31 +342,32 @@ sudo find $wp_dir_path -type f -exec chmod 644 {} \;
 
 wrapup_nginx
 
-read -p "Please enter the current MySQL password: " rootpassword
-read -p "Please enter your current database username: " dbuser
-read -p "Please enter the name of the new database: " dbname
-read -p "Please enter the MySQL root username for the old server: " olddbuser
-read -p "Please enter the MySQL root password for the old server: " olddbroot
 read -p "Please enter the old database name: " olddbname
+read -p "Please enter the new database name: " dbname
+read -p "Please enter the MySQL password: " mysqlpassword
+read -p "Please enter the current database username: " dbuser
+read -p "Please enter the current database user password: " dbpassword
+read -p "Please enter the new database prefix: " newprefix
 
-remote_db_import $rootpassword $dbname $dbuser $olduser $oldip $olddbuser $olddbroot $olddbname
+createdb $mysqlpassword $dbname $dbuser
 
-cd $wp_dir_path
-sudo ls -l
+remote_db_import $mysqlpassword $dbname $oldssh $oldip $olddbname
+
+wp_update_config $wp_dir_path $dbname $dbuser $dbpassword $newprefix
 ;;
 
 
 
 7) # Remove Site and WordPress
-read -p "Please enter the domain (with subdomain, if needed) for the database you'd like to remove: " sitedomain
-read -p "Please enter the MySQL password: " rootpassword
+read -p "Please enter the full domain for the site database you would like to remove: " sitedomain
+read -p "Please enter the MySQL password: " mysqlpassword
 
 calc_sitename $sitedomain
-calc_dbname $sitename
+calc_dbname $sitedomain
 
 # Drop database
-mysqladmin -uroot -p$rootpassword drop $dbname
-mysqladmin -uroot -p$rootpassword reload
+mysqladmin -uroot -p$mysqlpassword drop $dbname
+mysqladmin -uroot -p$mysqlpassword reload
 
 # Remove nginx site configs
 sudo rm -rf /etc/nginx/sites/$sitename.conf
