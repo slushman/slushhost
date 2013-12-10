@@ -1,6 +1,5 @@
 #!/bin/bash
 scriptloop="y"
-pathToShell="installers/"
 while [ "$scriptloop" = "y" ]; do
 echo -e  ""
 echo -e  ""
@@ -8,14 +7,13 @@ echo -e  "Slushhost Setup:"
 echo -e  ""
 echo -e  "1 - Download Repos"
 echo -e  "2 - Install MariaDB"
-echo -e  "3 - Finish MariaDB"
-echo -e  "4 - Install PHP & PHP-FPM"
-echo -e  "5 - Install nginx & PageSpeed"
-echo -e  "6 - Config iptables"
-echo -e  "7 - Install and Config Fail2Ban"
-echo -e  "8 - WP-CLI"
-echo -e  "9 - memcache, phpMyAdmin, and htop"
-echo -e  "10 - Config, Harden, and Start Server"
+echo -e  "3 - Install PHP & PHP-FPM"
+echo -e  "4 - Install nginx & PageSpeed"
+echo -e  "5 - Install and Config iptables and Fail2Ban"
+echo -e  "6 - WP-CLI"
+echo -e  "7 - memcache, phpMyAdmin, and htop"
+echo -e  "8 - Config, Harden, and Start Server"
+echo -e  "sel - Open SE Linux setup"
 echo -e  ""
 echo -e  "q - Exit Installers"
 echo -e  ""
@@ -33,7 +31,7 @@ sudo yum -y update
 sudo mv ~/slushhost/MariaDB.repo /etc/yum.repos.d/MariaDB.repo
 sudo yum -y install MariaDB-server MariaDB-client MariaDB-compat MariaDB-devel MariaDB-shared MariaDB-test
 
-read -p "Please enter the new MySQL root password: " rootpassword
+read -p "Please enter the new MySQL root password: " mysqlpassword
 
 '/usr/bin/mysqladmin' -uroot -p$rootpassword
 sudo service mysql start
@@ -41,15 +39,15 @@ sudo service mysql start
 read -p "Please enter your database username: " dbuser
 read -p "Please enter your database password: " dbpassword
 
-mysql -uroot -p$rootpassword -e "CREATE USER '$dbuser'@'localhost' IDENTIFIED BY '$dbpassword'";
+mysql -uroot -p$mysqlpassword -e "CREATE USER '$dbuser'@'localhost' IDENTIFIED BY '$dbpassword'";
 exit
 ;;
 
-4)
+3)
 sudo yum -y --enablerepo=remi,remi-php55 install php-fpm php-mysql php-gd php-common php-pear php-mbstring php-mcrypt php-xml php-pecl-apc php-devel php-mysqlnd
 ;;
 
-5)
+4)
 cd
 sudo yum -y install gcc gcc-c++ pcre-dev pcre-devel zlib-devel make openssl-devel
 wget https://github.com/pagespeed/ngx_pagespeed/archive/v1.7.30.1-beta.zip
@@ -93,7 +91,7 @@ sudo chkconfig nginx on
 sudo useradd -r nginx
 ;;
 
-6)
+5)
 sudo iptables -F 
 sudo iptables -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
 sudo iptables -A INPUT -p tcp ! --syn -m state --state NEW -j DROP
@@ -109,16 +107,13 @@ sudo iptables -P FORWARD DROP
 sudo iptables -P INPUT DROP
 sudo iptables-save | sudo tee /etc/sysconfig/iptables
 sudo service iptables restart
-;;
-
-7)
 sudo yum -y install fail2ban
 sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
 sudo sed -i 's/port=ssh/port=25000/g' /etc/fail2ban/jail.local 
 sudo service fail2ban start
 ;;
 
-8)
+6)
 source ~/.bash_profile
 cd
 git clone git://github.com/wp-cli/wp-cli.git
@@ -130,14 +125,14 @@ php composer.phar --quiet require --prefer-source 'd11wtq/boris=@stable'
 sudo ln -s ~/wp-cli/bin/wp /usr/local/bin/
 ;;
 
-9)
+7)
 sudo yum -y --enablerepo=remi,remi-php55 install memcached php-pecl-memcached.x86_64
 sudo sed -i 's/OPTIONS=""/OPTIONS="-l 127.0.0.1"/g' /etc/sysconfig/memcached
 sudo yum -y --enablerepo=remi,remi-test install phpmyadmin
 sudo yum -y install htop
 ;;
 
-10)
+8)
 sudo mkdir -p /var/www/
 sudo chmod 755 /var/www
 sudo mkdir -p /var/ngx_pagespeed_cache/
@@ -173,6 +168,10 @@ sudo chkconfig --levels 235 nginx on
 sudo chkconfig --levels 235 php-fpm on
 sudo chkconfig --levels 235 memcached on
 sudo chkconfig --levels 235 fail2ban on
+;;
+
+sel)
+./slushhost/selinux.sh
 ;;
 
 q)
