@@ -53,6 +53,7 @@ sudo sestatus
 
 5)
 ./slushhost/managesites.sh
+scriptloop="n"
 ;;
 
 

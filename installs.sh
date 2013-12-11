@@ -31,14 +31,13 @@ sudo yum -y update
 sudo mv ~/slushhost/MariaDB.repo /etc/yum.repos.d/MariaDB.repo
 sudo yum -y install MariaDB-server MariaDB-client MariaDB-compat MariaDB-devel MariaDB-shared MariaDB-test
 
-read -p "Please enter the new MySQL root password: " mysqlpassword
-
-'/usr/bin/mysqladmin' -uroot -p$rootpassword
 sudo service mysql start
 
+read -p "Please enter the new MySQL root password: " mysqlpassword
 read -p "Please enter your database username: " dbuser
 read -p "Please enter your database password: " dbpassword
 
+echo -e "\nY\n"'$mysqlpassword'"\n"'$mysqlpassword'"\nY\nY\nY\nY" | sudo /usr/bin/mysql_secure_installation
 mysql -uroot -p$mysqlpassword -e "CREATE USER '$dbuser'@'localhost' IDENTIFIED BY '$dbpassword'";
 exit
 ;;
@@ -172,6 +171,7 @@ sudo chkconfig --levels 235 fail2ban on
 
 sel)
 ./slushhost/selinux.sh
+scriptloop="n"
 ;;
 
 q)

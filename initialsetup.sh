@@ -19,6 +19,8 @@ case $choice in
 
 1)
 sudo mkdir -p ~/.ssh
+echo -e "Paste in the contents of the id_rsa.pub file from your local computer."
+read -p "Hit enter to paste the SSH key."
 sudo vi ~/.ssh/authorized_keys
 ;;
 
@@ -33,6 +35,12 @@ sudo chown $USER:$USER ~/.ssh/id_rsa
 sudo chown $USER:$USER ~/.ssh/id_rsa.pub
 sudo chmod 0700 ~/.ssh/id_rsa
 sudo chmod 0700 ~/.ssh/id_rsa.pub
+echo -e "Copy the following SSH key"
+echo -e "Go to Github, click the Edit Your Profile button, and go to SSH keys"
+echo -e "Click the Add SSH Key button, paste in the SSH key and give it a name."
+echo -e "Click the Add Key button."
+echo -e "When your finished, on server, press escape, then Shift ZZ to save and exit the file."
+read -p "Hit enter to see the SSH key."
 sudo vi ~/.ssh/id_rsa.pub
 ;;
 
@@ -71,6 +79,7 @@ sudo chmod +x slushhost/managesites.sh
 sudo chmod +x slushhost/selinux.sh
 sudo mv -f slushhost/bash_profile.txt ~/.bash_profile
 ./slushhost/installs.sh
+scriptloop="n"
 ;;
 
 
