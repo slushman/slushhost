@@ -37,33 +37,15 @@ read -p "Please enter the new MySQL root password: " mysqlpassword
 read -p "Please enter your database username: " dbuser
 read -p "Please enter your database password: " dbpassword
 
-spawn /usr/bin/mysql_secure_installation
-
-expect "Enter current password for root (enter for none):"
-send "\r"
-	
-expect "Set root password?"
-send "Y\r"
-
-expect "New password:"
-send "$mysqlpassword\r"
-
-expect "Re-enter new password:"
-send "$mysqlpassword\r"
-
-expect "Remove anonymous users?"
-send "Y\r"
-
-expect "Disallow root login remotely?"
-send "Y\r"
-
-expect "Remove test database and access to it?"
-send "Y\r"
-
-expect "Reload privilege tables now?"
-send "Y\r"
-
-mysql -uroot -p$mysqlpassword -e "CREATE USER '$dbuser'@'localhost' IDENTIFIED BY '$dbpassword'"
+sudo mysql_upgrade --force --verbose
+sudo mysql -e "DELETE FROM mysql.user WHERE User='';"
+sudo mysql -e "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');"
+sudo mysql -e "DROP DATABASE test;"
+sudo mysql -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%'"
+sudo mysqladmin -u root password $mysqlpassword
+sudo mysql -uroot -p$mysqlpassword -e "CREATE USER '$dbuser'@'localhost' IDENTIFIED BY '$dbpassword'"
+sudo mysql -uroot -p$mysqlpassword -e "FLUSH PRIVILEGES;"
+sudo service mysql restart
 ;;
 
 3)
