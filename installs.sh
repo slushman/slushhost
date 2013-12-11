@@ -37,9 +37,33 @@ read -p "Please enter the new MySQL root password: " mysqlpassword
 read -p "Please enter your database username: " dbuser
 read -p "Please enter your database password: " dbpassword
 
-echo -e "\nY\n"'$mysqlpassword'"\n"'$mysqlpassword'"\nY\nY\nY\nY" | sudo /usr/bin/mysql_secure_installation
-mysql -uroot -p$mysqlpassword -e "CREATE USER '$dbuser'@'localhost' IDENTIFIED BY '$dbpassword'";
-exit
+spawn /usr/bin/mysql_secure_installation
+
+expect "Enter current password for root (enter for none):"
+send "\r"
+	
+expect "Set root password?"
+send "Y\r"
+
+expect "New password:"
+send "$mysqlpassword\r"
+
+expect "Re-enter new password:"
+send "$mysqlpassword\r"
+
+expect "Remove anonymous users?"
+send "Y\r"
+
+expect "Disallow root login remotely?"
+send "Y\r"
+
+expect "Remove test database and access to it?"
+send "Y\r"
+
+expect "Reload privilege tables now?"
+send "Y\r"
+
+mysql -uroot -p$mysqlpassword -e "CREATE USER '$dbuser'@'localhost' IDENTIFIED BY '$dbpassword'"
 ;;
 
 3)
