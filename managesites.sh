@@ -126,11 +126,17 @@ function wp_update_config()
 	sudo sed -i '1s/^/from="127.0.0.1" /' wp_rsa.pub
 	cat /home/$USER/wp_rsa.pub >> /home/$USER/.ssh/authorized_keys
 
-	echo "define('FTP_PUBKEY', '/home/'$USER'/wp_rsa.pub');" >> $wp_config_file
-	echo "define('FTP_PRIKEY', '/home/'$USER'/wp_rsa');" >> $wp_config_file
+	sudo chown -R $USER:$USER $wp_config_file
+
+	echo "" >> $wp_config_file
+	echo "/* Add SSH key for updating WP, plugins, and themes */" >> $wp_config_file
+	echo "define('FTP_PUBKEY', '/home/$USER/wp_rsa.pub');" >> $wp_config_file
+	echo "define('FTP_PRIKEY', '/home/$USER/wp_rsa');" >> $wp_config_file
 	echo "define('FTP_USER', '$USER');" >> $wp_config_file
 	echo "define('FTP_PASS', '');" >> $wp_config_file
 	echo "define('FTP_HOST', '127.0.0.1:25000');" >> $wp_config_file
+
+	sudo chown -R nginx:nginx $wp_config_file
 
 	cd $1
 
@@ -150,7 +156,7 @@ function wp_update_config()
 # 	$5: Remote database name
 function remote_db_import()
 {
-	# ssh $olduser@$oldip "mysqldump $olddbname" | mysql -uroot -p$mysqlpassword $dbname
+	# ssh $oldssh@$oldip "mysqldump $olddbname" | mysql -uroot -p$mysqlpassword $dbname
 	ssh $3@$4 "mysqldump $5 | gzip" | gzip -d | mysql -uroot -p$1 $2
 }
 
@@ -336,7 +342,7 @@ nginx_configs $sitedomain
 
 make_dirs $wp_dir_path
 
-sudo rsync -av -e ssh --progress $olduser@$oldip:$oldpath $wp_dir_path
+sudo rsync -av -e ssh --progress $oldssh@$oldip:$oldpath $wp_dir_path
 sudo find $wp_dir_path -type d -exec chmod 755 {} \;
 sudo find $wp_dir_path -type f -exec chmod 644 {} \;
 
