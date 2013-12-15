@@ -137,6 +137,7 @@ function wp_update_config()
 	echo "define('FTP_HOST', '127.0.0.1:25000');" >> $wp_config_file
 
 	sudo chown -R nginx:nginx $wp_config_file
+	sudo chmod 660 /usr/share/wordpress/wp-config.php
 
 	cd $1
 
@@ -174,7 +175,8 @@ echo -e  "3 - Add New Database"
 echo -e  "4 - Import Database"
 echo -e  "5 - Export Database"
 echo -e  "6 - Move Site and Database from Another Server"
-echo -e  "7 - Remove Site and WordPress"
+echo -e  "7 - Disable Site"
+echo -e  "8 - Remove Site and WordPress"
 echo -e  ""
 echo -e  "q - Exit new site script"
 echo -e  ""
@@ -364,7 +366,22 @@ wp_update_config $wp_dir_path $dbname $dbuser $dbpassword $newprefix
 
 
 
-7) # Remove Site and WordPress
+7) # Disable site
+read -p "Please enter the full domain for the site to disable: " sitedomain
+
+# Calculate database name
+calc_sitename $sitedomain
+
+# Rename the nginx conf file for this site
+sudo cp /etc/nginx/sites/$sitename.conf /etc/nginx/sites/$sitename.settings
+
+# Reload nginx
+sudo service nginx reload
+;;
+
+
+
+8) # Remove Site and WordPress
 read -p "Please enter the full domain for the site database you would like to remove: " sitedomain
 read -p "Please enter the MySQL password: " mysqlpassword
 
