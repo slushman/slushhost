@@ -195,6 +195,10 @@ Hit the up arrow to get the last command again, this time, choose option 4
 Install & Config SELinux
 ---------------
 
+To install and configure SELinux, run this command:
+
+	./slushhost/selinux.sh
+
 Run each option in order. The server will reboot after each option. Wait about 60 seconds, then hit the up arrow to get the login command again. Once you've reconnected to the server, hit the up arrow again to reopen the SE Linux config script.
 
 Manage Sites
