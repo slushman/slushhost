@@ -11,9 +11,8 @@ echo -e  "3 - Install PHP & PHP-FPM"
 echo -e  "4 - Install nginx & PageSpeed"
 echo -e  "5 - Install and Config iptables and Fail2Ban"
 echo -e  "6 - WP-CLI"
-echo -e  "7 - memcache, phpMyAdmin, and htop"
+echo -e  "7 - htop and memcache"
 echo -e  "8 - Config, Harden, and Start Server"
-echo -e  "sel - Open SE Linux setup"
 echo -e  ""
 echo -e  "q - Exit Installers"
 echo -e  ""
@@ -26,6 +25,8 @@ sudo rpm -Uvh http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-8
 sudo rpm -Uvh http://rpms.famillecollet.com/enterprise/remi-release-6.rpm
 sudo yum -y update
 ;;
+
+
 
 2)
 sudo mv ~/slushhost/MariaDB.repo /etc/yum.repos.d/MariaDB.repo
@@ -48,9 +49,13 @@ sudo mysql -uroot -p$mysqlpassword -e "FLUSH PRIVILEGES;"
 sudo service mysql restart
 ;;
 
+
+
 3)
 sudo yum -y --enablerepo=remi,remi-php55 install php-fpm php-mysql php-gd php-common php-pear php-mbstring php-mcrypt php-xml php-pecl-apc php-devel php-mysqlnd
 ;;
+
+
 
 4)
 cd
@@ -96,6 +101,8 @@ sudo chkconfig nginx on
 sudo useradd -r nginx
 ;;
 
+
+
 5)
 sudo iptables -F 
 sudo iptables -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
@@ -105,7 +112,7 @@ sudo iptables -A INPUT -i lo -j ACCEPT
 sudo iptables -A OUTPUT -o lo -j ACCEPT
 sudo iptables -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT 
 sudo iptables -A INPUT -p tcp -m tcp --dport 443 -j ACCEPT 
-sudo iptables -A INPUT -p tcp -m tcp --dport 25000 -j ACCEPT 
+sudo iptables -A INPUT -p tcp -m tcp --dport 880 -j ACCEPT 
 sudo iptables -I INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 sudo iptables -P OUTPUT ACCEPT
 sudo iptables -P FORWARD DROP
@@ -114,9 +121,11 @@ sudo iptables-save | sudo tee /etc/sysconfig/iptables
 sudo service iptables restart
 sudo yum -y install fail2ban
 sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
-sudo sed -i 's/port=ssh/port=25000/g' /etc/fail2ban/jail.local 
+sudo sed -i 's/port=ssh/port=880/g' /etc/fail2ban/jail.local 
 sudo service fail2ban start
 ;;
+
+
 
 6)
 source ~/.bash_profile
@@ -130,14 +139,18 @@ php composer.phar --quiet require --prefer-source 'd11wtq/boris=@stable'
 sudo ln -s ~/wp-cli/bin/wp /usr/local/bin/
 ;;
 
-7)
+
+
+7) # htop and memcache
+sudo yum -y install htop
 sudo yum -y --enablerepo=remi,remi-php55 install memcached php-pecl-memcached.x86_64
 sudo sed -i 's/OPTIONS=""/OPTIONS="-l 127.0.0.1"/g' /etc/sysconfig/memcached
-sudo yum -y --enablerepo=remi,remi-test install phpmyadmin
-sudo yum -y install htop
+sudo service php-fpm restart
 ;;
 
-8)
+
+
+8) # Config, Harden, and Start Server
 sudo mkdir -p /var/www/
 sudo chmod 755 /var/www
 sudo mkdir -p /var/ngx_pagespeed_cache/
@@ -175,10 +188,7 @@ sudo chkconfig --levels 235 memcached on
 sudo chkconfig --levels 235 fail2ban on
 ;;
 
-sel)
-./slushhost/selinux.sh
-scriptloop="n"
-;;
+
 
 q)
 scriptloop="n"

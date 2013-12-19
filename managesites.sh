@@ -44,8 +44,7 @@ function createdb()
 	test -d "/var/lib/mysql/$2" && echo "Database created successfully" || echo "Database was not created"
 }
 
-# Makes directories for a new site and adds link for phpMyAdmin
-# phpMyAdmin link is commented out for now until it works
+# Makes directories for a new site
 # 
 # Usage:
 # make_dirs $wp_dir_path
@@ -55,7 +54,6 @@ function createdb()
 function make_dirs()
 {
 	sudo mkdir -p $1
-	#sudo ln -s /usr/share/phpMyAdmin/ $1
 }
 
 # Creates the nginx config files
@@ -134,7 +132,7 @@ function wp_update_config()
 	echo "define('FTP_PRIKEY', '/home/$USER/wp_rsa');" >> $wp_config_file
 	echo "define('FTP_USER', '$USER');" >> $wp_config_file
 	echo "define('FTP_PASS', '');" >> $wp_config_file
-	echo "define('FTP_HOST', '127.0.0.1:25000');" >> $wp_config_file
+	echo "define('FTP_HOST', '127.0.0.1:880');" >> $wp_config_file
 
 	sudo chown -R nginx:nginx $wp_config_file
 	sudo chmod 660 /usr/share/wordpress/wp-config.php

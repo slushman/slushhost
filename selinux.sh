@@ -39,7 +39,7 @@ sudo reboot
 3)
 sudo sed -i 's/SELINUX=permissive/SELINUX=enforcing/g' /etc/selinux/config
 sudo egrep -i 'selinux=0|enforcing=0' /boot/grub/grub.conf
-sudo semanage port -a -t ssh_port_t -p tcp 25000
+sudo semanage port -a -t ssh_port_t -p tcp 880
 sudo reboot
 ;;
 
