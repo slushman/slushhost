@@ -135,7 +135,7 @@ function wp_update_config()
 	echo "define('FTP_HOST', '127.0.0.1:880');" >> $wp_config_file
 
 	sudo chown -R nginx:nginx $wp_config_file
-	sudo chmod 660 /usr/share/wordpress/wp-config.php
+	sudo chmod 660 $wp_config_file
 
 	cd $1
 
