@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# 
+# 
+# 
+function bashesc()
+{
+	return s/([^a-zA-Z0-9])/\\$1/g;
+}
+
 # Calculates the sitename from the site domain
 # 
 # Usage:
@@ -116,13 +124,18 @@ function wp_update_config()
 	sudo sed -i 's/'$currprefix'/'$5'/g' $wp_config_file
 
 	cd
-	sudo ssh-keygen -f wp_rsa -N ''
-	sudo chown $USER:nginx wp_rsa
-	sudo chown $USER:nginx wp_rsa.pub
-	sudo chmod 0700 wp_rsa
-	sudo chmod 0700 wp_rsa.pub
-	sudo sed -i '1s/^/from="127.0.0.1" /' wp_rsa.pub
-	cat /home/$USER/wp_rsa.pub >> /home/$USER/.ssh/authorized_keys
+
+	if [ ! -f wp_rsa ]; then
+
+		sudo ssh-keygen -f wp_rsa -N ''
+		sudo chown $USER:nginx wp_rsa
+		sudo chown $USER:nginx wp_rsa.pub
+		sudo chmod 0700 wp_rsa
+		sudo chmod 0700 wp_rsa.pub
+		sudo sed -i '1s/^/from="127.0.0.1" /g' wp_rsa.pub
+		cat /home/$USER/wp_rsa.pub >> /home/$USER/.ssh/authorized_keys
+
+	fi
 
 	sudo chown -R $USER:$USER $wp_config_file
 
