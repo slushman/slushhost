@@ -76,7 +76,7 @@ function nginx_configs()
 
 	# Create nginx site configs
 	sudo cp /etc/nginx/sites/$settingfile.settings /etc/nginx/sites/$sitename.conf
-	sudo sed -i 's/replacewithsitedomain/'$1'/g' /etc/nginx/sites/$sitename.conf
+	sudo sed -i 's|replacewithsitedomain|'$1'|g' /etc/nginx/sites/$sitename.conf
 }
 
 # Sets permissions on the nginx site and log directories and reloads nginx config
@@ -110,10 +110,10 @@ function wp_update_config()
 	wpdbpass=`cat $wp_config_file | grep DB_PASSWORD | cut -d \' -f 4`
 	currprefix=`cat $wp_config_file | grep table_prefix | cut -d \' -f 2`
 
-	sudo sed -i 's/'$wpdbname'/'$2'/g' $wp_config_file
-	sudo sed -i 's/'$wpdbuser'/'$3'/g' $wp_config_file
-	sudo sed -i 's/'$wpdbpass'/'$4'/g' $wp_config_file
-	sudo sed -i 's/'$currprefix'/'$5'/g' $wp_config_file
+	sudo sed -i 's|'$wpdbname'|'$2'|' $wp_config_file
+	sudo sed -i 's|'$wpdbuser'|'$3'|' $wp_config_file
+	sudo sed -i 's|'$wpdbpass'|'$4'|' $wp_config_file
+	sudo sed -i 's|'$currprefix'|'$5'|' $wp_config_file
 
 	cd
 
@@ -124,7 +124,7 @@ function wp_update_config()
 		sudo chown $USER:nginx wp_rsa.pub
 		sudo chmod 0700 wp_rsa
 		sudo chmod 0700 wp_rsa.pub
-		sudo sed -i '1s/^/from="127.0.0.1" /g' wp_rsa.pub
+		sudo sed -i 's|^|from="127.0.0.1" |' wp_rsa.pub
 		cat /home/$USER/wp_rsa.pub >> /home/$USER/.ssh/authorized_keys
 
 	fi

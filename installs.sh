@@ -121,7 +121,7 @@ sudo iptables-save | sudo tee /etc/sysconfig/iptables
 sudo service iptables restart
 sudo yum -y install fail2ban
 sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
-sudo sed -i 's/port=ssh/port=880/g' /etc/fail2ban/jail.local 
+sudo sed -i 's|port=ssh|port=880|g' /etc/fail2ban/jail.local 
 sudo service fail2ban start
 ;;
 
@@ -144,7 +144,7 @@ sudo ln -s ~/wp-cli/bin/wp /usr/local/bin/
 7) # htop and memcache
 sudo yum -y install htop
 sudo yum -y --enablerepo=remi,remi-php55 install memcached php-pecl-memcached.x86_64
-sudo sed -i 's/OPTIONS=""/OPTIONS="-l 127.0.0.1"/g' /etc/sysconfig/memcached
+sudo sed -i 's|OPTIONS=""|OPTIONS="-l 127.0.0.1"|g' /etc/sysconfig/memcached
 sudo service php-fpm restart
 ;;
 
