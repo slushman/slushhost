@@ -1,13 +1,5 @@
 #!/bin/bash
 
-# 
-# 
-# 
-function bashesc()
-{
-	return s/([^a-zA-Z0-9])/\\$1/g;
-}
-
 # Calculates the sitename from the site domain
 # 
 # Usage:
