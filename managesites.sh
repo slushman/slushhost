@@ -1,5 +1,17 @@
 #!/bin/bash
 
+# Escapes special characters for use in the script
+#
+# Usage:
+# 	bashesc $texttobecleaned
+# 	
+# Requires one parameter:
+# 	The text to be cleaned
+function bashesc()
+{
+	printf "%q" "$1";
+}
+
 # Calculates the sitename from the site domain
 # 
 # Usage:
@@ -90,6 +102,7 @@ function wrapup_nginx()
 	sudo service nginx reload
 }
 
+# Updates an existing WordPress config file with new information
 #
 # Usage:
 # wp_update_config $wp_dir_path $dbname $dbuser $dbpassword $newprefix
@@ -105,15 +118,20 @@ function wp_update_config()
 	# Path to the wp-config.php file for this domain
 	wp_config_file=$1/wp-config.php
 
-	wpdbname=`cat $wp_config_file | grep DB_NAME | cut -d \' -f 4`
-	wpdbuser=`cat $wp_config_file | grep DB_USER | cut -d \' -f 4`
-	wpdbpass=`cat $wp_config_file | grep DB_PASSWORD | cut -d \' -f 4`
-	currprefix=`cat $wp_config_file | grep table_prefix | cut -d \' -f 2`
+	dbname=`cat $wp_config_file | grep DB_NAME | cut -d \' -f 4`
+	dbuser=`cat $wp_config_file | grep DB_USER | cut -d \' -f 4`
+	dbpass=`cat $wp_config_file | grep DB_PASSWORD | cut -d \' -f 4`
+	prefix=`cat $wp_config_file | grep table_prefix | cut -d \' -f 2`
 
-	sudo sed -i 's|'$wpdbname'|'$2'|' $wp_config_file
-	sudo sed -i 's|'$wpdbuser'|'$3'|' $wp_config_file
-	sudo sed -i 's|'$wpdbpass'|'$4'|' $wp_config_file
-	sudo sed -i 's|'$currprefix'|'$5'|' $wp_config_file
+	wpdbname=`bashesc $dbname`
+	wpdbuser=`bashesc $dbuser`
+	wpdbpass=`bashesc $dbpass`
+	currprefix=`bashesc $prefix`
+
+	sudo sed -i 's|'$wpdbname'|'$2'|g' $wp_config_file
+	sudo sed -i 's|'$wpdbuser'|'$3'|g' $wp_config_file
+	sudo sed -i 's|'$wpdbpass'|'$4'|g' $wp_config_file
+	sudo sed -i 's|'$currprefix'|'$5'|g' $wp_config_file
 
 	cd
 
@@ -158,9 +176,10 @@ function wp_update_config()
 # 	$3: Remote server user name
 # 	$4: Remote server IP address
 # 	$5: Remote database name
+# 	
+# 	ssh $oldssh@$oldip "mysqldump $olddbname" | mysql -uroot -p$mysqlpassword $dbname
 function remote_db_import()
 {
-	# ssh $oldssh@$oldip "mysqldump $olddbname" | mysql -uroot -p$mysqlpassword $dbname
 	ssh $3@$4 "mysqldump $5 | gzip" | gzip -d | mysql -uroot -p$1 $2
 }
 
@@ -181,7 +200,7 @@ echo -e  "6 - Move Site and Database from Another Server"
 echo -e  "7 - Disable Site"
 echo -e  "8 - Remove Site and WordPress"
 echo -e  ""
-echo -e  "q - Exit new site script"
+echo -e  "q - Exit manage sites script"
 echo -e  ""
 echo -e  "Please enter NUMBER of choice (example: 1):"
 read choice
