@@ -1,6 +1,6 @@
 server
 {
-     server_name replacewithsitedomain www.replacewithsitedomain;
+     server_name *.replacewithsitedomain;
      root /var/www/replacewithsitedomain/public_html;
 
      # Brings in security, defaults, etc

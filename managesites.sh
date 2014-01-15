@@ -118,21 +118,11 @@ function wp_update_config()
 	# Path to the wp-config.php file for this domain
 	wp_config_file=$1/wp-config.php
 
-	dbname=`cat $wp_config_file | grep DB_NAME | cut -d \' -f 4`
-	dbuser=`cat $wp_config_file | grep DB_USER | cut -d \' -f 4`
-	dbpass=`cat $wp_config_file | grep DB_PASSWORD | cut -d \' -f 4`
-	prefix=`cat $wp_config_file | grep table_prefix | cut -d \' -f 2`
-
-	wpdbname=`bashesc $dbname`
-	wpdbuser=`bashesc $dbuser`
-	wpdbpass=`bashesc $dbpass`
-	currprefix=`bashesc $prefix`
-
-	sudo sed -i 's|'$wpdbname'|'$2'|g' $wp_config_file
-	sudo sed -i 's|'$wpdbuser'|'$3'|g' $wp_config_file
-	sudo sed -i 's|'$wpdbpass'|'$4'|g' $wp_config_file
-	sudo sed -i 's|'$currprefix'|'$5'|g' $wp_config_file
-
+	cd $1
+	
+	sudo rm -rf $wp_config_file
+	wp core config --dbname=$2 --dbuser=$3 --dbpass=$4 --dbprefix=$5
+	
 	cd
 
 	if [ ! -f wp_rsa ]; then
