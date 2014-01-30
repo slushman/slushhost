@@ -1,5 +1,45 @@
 #!/bin/bash
 
+# Updates an existing WordPress config file with FTP via SSH info
+#
+# Usage:
+# wp_update_config $wp_dir_path
+#
+# Requires parameters:
+# 	$1: The path to the WP site
+function add_ssh_updating()
+{
+	# Path to the wp-config.php file for this domain
+	wp_config_file=$1/wp-config.php
+
+	cd
+
+	if [ ! -f wp_rsa ]; then
+
+		sudo ssh-keygen -f wp_rsa -N ''
+		sudo chown $USER:nginx wp_rsa
+		sudo chown $USER:nginx wp_rsa.pub
+		sudo chmod 0700 wp_rsa
+		sudo chmod 0700 wp_rsa.pub
+		sudo sed -i 's|^|from="127.0.0.1" |' wp_rsa.pub
+		cat /home/$USER/wp_rsa.pub >> /home/$USER/.ssh/authorized_keys
+
+	fi
+
+	sudo chown -R $USER:$USER $wp_config_file
+
+	echo "" >> $wp_config_file
+	echo "/* Add SSH key for updating WP, plugins, and themes */" >> $wp_config_file
+	echo "define('FTP_PUBKEY', '/home/$USER/wp_rsa.pub');" >> $wp_config_file
+	echo "define('FTP_PRIKEY', '/home/$USER/wp_rsa');" >> $wp_config_file
+	echo "define('FTP_USER', '$USER');" >> $wp_config_file
+	echo "define('FTP_PASS', '');" >> $wp_config_file
+	echo "define('FTP_HOST', '127.0.0.1:880');" >> $wp_config_file
+
+	sudo chown -R nginx:nginx $wp_config_file
+	sudo chmod 660 $wp_config_file
+}
+
 # Escapes special characters for use in the script
 #
 # Usage:
@@ -91,15 +131,68 @@ function nginx_configs()
 	sudo sed -i 's|replacewithsitedomain|'$1'|g' /etc/nginx/sites/$sitename.conf
 }
 
-# Sets permissions on the nginx site and log directories and reloads nginx config
+# Imports site files and database from remote server
 # 
 # Usage:
-# wrapup_nginx
-function wrapup_nginx()
+# remote_db_import $mysqlpassword $dbname $olduser $oldip $olddbname
+# 
+# Requires parameters:
+# 	$1: MySQL root password
+# 	$2: New database name
+# 	$3: Remote server user name
+# 	$4: Remote server IP address
+# 	$5: Remote database name
+# 	
+# 	ssh $oldssh@$oldip "mysqldump $olddbname" | mysql -uroot -p$mysqlpassword $dbname
+function remote_db_import()
 {
-	sudo chown -R nginx:nginx /var/www/*
-	sudo chown -R nginx:nginx /var/log/*
-	sudo service nginx reload
+	ssh $3@$4 "mysqldump $5 | gzip" | gzip -d | mysql -uroot -p$1 $2
+}
+
+# Installs plugins most commonly used by Slushman
+# 
+# Usage:
+# wp_install_basic_plugins
+function wp_install_basic_plugins()
+{
+	wp plugin install akismet
+	wp plugin install better-wp-security
+	wp plugin install wordpress-seo
+	wp plugin install google-analyticator
+	wp plugin install jetpack
+}
+
+# Removes dummy user, cleans out WP install, creates the real admin user,
+# and sets basic settings.
+# 
+# Usage:
+# wp_instant_setup
+function wp_instant_setup()
+{
+	read -p "Please enter the admin username: " adminuser
+	read -p "Please enter the admin email: " adminemail
+	read -p "Please enter the admin password: " adminpass
+	
+	wp user delete 1
+	wp site empty --yes
+	wp plugin delete hello
+	wp user create $adminuser $adminemail --user_pass=$adminpass
+	wp user add-role $adminuser administrator
+	wp option update cadmin_email $adminemail
+	wp option update cavatar_rating 'G'
+	wp option delete cblogdescription
+	wp option update cclose_comments_days_old '30'
+	wp option update cclose_comments_for_old_posts '1'
+	wp option update ccomment_registration '1'
+	wp option update cdefault_comments_page 'newest'
+	wp option update cdefault_pingback_flag '1'
+	wp option delete cmailserver_login
+	wp option delete cmailserver_pass
+	wp option delete cmailserver_url
+	wp option update cpermalink_structure '/%category%/%postname%/'
+	wp option update cstart_of_week '0'
+	wp option update ctimezone_string 'America/Chicago'
+	wp option update cusers_can_register '1'
 }
 
 # Updates an existing WordPress config file with new information
@@ -122,57 +215,19 @@ function wp_update_config()
 	
 	sudo rm -rf $wp_config_file
 	wp core config --dbname=$2 --dbuser=$3 --dbpass=$4 --dbprefix=$5
-	
-	cd
-
-	if [ ! -f wp_rsa ]; then
-
-		sudo ssh-keygen -f wp_rsa -N ''
-		sudo chown $USER:nginx wp_rsa
-		sudo chown $USER:nginx wp_rsa.pub
-		sudo chmod 0700 wp_rsa
-		sudo chmod 0700 wp_rsa.pub
-		sudo sed -i 's|^|from="127.0.0.1" |' wp_rsa.pub
-		cat /home/$USER/wp_rsa.pub >> /home/$USER/.ssh/authorized_keys
-
-	fi
-
-	sudo chown -R $USER:$USER $wp_config_file
-
-	echo "" >> $wp_config_file
-	echo "/* Add SSH key for updating WP, plugins, and themes */" >> $wp_config_file
-	echo "define('FTP_PUBKEY', '/home/$USER/wp_rsa.pub');" >> $wp_config_file
-	echo "define('FTP_PRIKEY', '/home/$USER/wp_rsa');" >> $wp_config_file
-	echo "define('FTP_USER', '$USER');" >> $wp_config_file
-	echo "define('FTP_PASS', '');" >> $wp_config_file
-	echo "define('FTP_HOST', '127.0.0.1:880');" >> $wp_config_file
-
-	sudo chown -R nginx:nginx $wp_config_file
-	sudo chmod 660 $wp_config_file
-
-	cd $1
-
-	wp core update-db
+ 	wp core update-db
 }
 
-# Imports site files and database from remote server
+# Sets permissions on the nginx site and log directories and reloads nginx config
 # 
 # Usage:
-# remote_db_import $mysqlpassword $dbname $olduser $oldip $olddbname
-# 
-# Requires parameters:
-# 	$1: MySQL root password
-# 	$2: New database name
-# 	$3: Remote server user name
-# 	$4: Remote server IP address
-# 	$5: Remote database name
-# 	
-# 	ssh $oldssh@$oldip "mysqldump $olddbname" | mysql -uroot -p$mysqlpassword $dbname
-function remote_db_import()
+# wrapup_nginx
+function wrapup_nginx()
 {
-	ssh $3@$4 "mysqldump $5 | gzip" | gzip -d | mysql -uroot -p$1 $2
+	sudo chown -R nginx:nginx /var/www/*
+	sudo chown -R nginx:nginx /var/log/*
+	sudo service nginx reload
 }
-
 
 
 scriptloop="y"
@@ -201,12 +256,10 @@ case $choice in
 1) # Setup Site with WordPress
 read -p "Please enter the full domain for the site: " sitedomain
 read -p "Please enter the site title: " sitetitle
-read -p "Please enter the admin username: " adminuser
-read -p "Please enter the admin email: " adminemail
-read -p "Please enter the admin password: " adminpass
 read -p "Please enter the MySQL password: " mysqlpassword
-read -p "Please enter the new database user name: " dbuser
 read -p "Please enter the new database name: " dbname
+read -p "Please enter the new database user name: " dbuser
+read -p "Please enter the new database password: " dbpassword
 read -p "Please enter the new database prefix: " dbprefix
 
 wp_dir_path=/var/www/$sitedomain/public_html
@@ -234,30 +287,11 @@ if $(wp core is-installed); then
     echo "WordPress is installed!"
 fi
 
-wp user delete 1
-wp site empty --yes
-wp plugin delete hello
-wp user create $adminuser $adminemail --user_pass=$adminpass
-wp user add-role $adminuser administrator
-wp option update cadmin_email $adminemail
-wp option update cavatar_rating 'G'
-wp option delete cblogdescription
-wp option update cclose_comments_days_old '30'
-wp option update cclose_comments_for_old_posts '1'
-wp option update ccomment_registration '1'
-wp option update cdefault_comments_page 'newest'
-wp option update cdefault_pingback_flag '1'
-wp option delete cmailserver_login
-wp option delete cmailserver_pass
-wp option delete cmailserver_url
-wp option update cpermalink_structure '/%category%/%postname%/'
-wp option update cstart_of_week '0'
-wp option update ctimezone_string 'America/Chicago'
-wp option update cusers_can_register '1'
-wp plugin install better-wp-security --activate
-wp plugin install wordpress-seo --activate
-wp plugin install google-analyticator --activate
-wp plugin install jetpack --activate
+wp_instant_setup
+
+wp_install_basic_plugins
+
+add_ssh_updating $wp_dir_path
 
 sudo rm -rf $wp_dir_path/wp-config-sample.php
 
@@ -374,6 +408,8 @@ createdb $mysqlpassword $dbname $dbuser
 remote_db_import $mysqlpassword $dbname $oldssh $oldip $olddbname
 
 wp_update_config $wp_dir_path $dbname $dbuser $dbpassword $newprefix
+
+add_ssh_updating $wp_dir_path
 ;;
 
 
@@ -410,6 +446,38 @@ sudo rm -rf /etc/nginx/sites/$sitename.conf
 # Delete site directories
 sudo rm -rf /var/www/$sitedomain
 sudo service nginx reload
+;;
+
+
+
+9) # Convert to multisite
+read -p "Please enter the full domain for the site to convert: " sitedomain
+
+wp_dir_path=/var/www/$sitedomain/public_html
+
+cd $wp_dir_path
+
+wp core multisite-convert
+;;
+
+
+
+10) # Install additional plugins
+read -p "Please enter the full domain for the site you'd like to install plugins on: " sitedomain
+
+wp_dir_path=/var/www/$sitedomain/public_html
+
+cd $wp_dir_path
+
+wp plugin install code-prettify
+wp plugin install nginx-helper
+wp plugin install wp-ffpc
+wp plugin install easy-wp-smtp
+wp plugin install sweetcaptcha-revolutionary-free-captcha-service
+wp plugin install wordpress-importer
+wp plugin install wordpress-backup-to-dropbox
+wp plugin install wp-portfolio
+wp plugin install wp-cycle
 ;;
 
 

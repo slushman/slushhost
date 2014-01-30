@@ -155,7 +155,7 @@ sudo mkdir -p /var/www/
 sudo chmod 755 /var/www
 sudo mkdir -p /var/ngx_pagespeed_cache/
 sudo chown -R nginx:nginx /var/ngx_pagespeed_cache
-sudo usermod -a -G nginx slushman
+sudo usermod -aG nginx slushman
 
 sudo mv /etc/nginx/nginx.conf /etc/nginx/old.nginx.settings
 sudo mv /etc/nginx/mime.types /etc/nginx/old.mime.types.settings
